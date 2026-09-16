@@ -1,0 +1,176 @@
+.tuning-fab {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 5;
+  font: inherit;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #1e5aa8;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.tuning-panel {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 6;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-family: system-ui, sans-serif;
+  width: 260px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+
+.tuning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tuning-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
+.tuning-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: #333;
+}
+
+.tuning-field input,
+.tuning-field select {
+  font: inherit;
+  padding: 5px 6px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.tuning-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tuning-presets button {
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.tuning-run {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  background: #1e5aa8;
+  color: #fff;
+  cursor: pointer;
+}
+
+.tuning-run:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tuning-error {
+  color: #c0392b;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.tuning-error code {
+  background: #f4f4f4;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.tuning-result {
+  background: #f0f6ff;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tuning-weights-toggle {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: #1e5aa8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tuning-weights {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+}
+
+.tuning-weights-hint {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.tuning-weight-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.tuning-weight-row span {
+  display: flex;
+  justify-content: space-between;
+  color: #333;
+}
+
+.tuning-weight-row em {
+  color: #888;
+  font-style: normal;
+}
+
+.tuning-reset {
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  align-self: flex-start;
+}

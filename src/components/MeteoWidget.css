@@ -1,0 +1,22 @@
+.meteo-widget {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 999px;
+  padding: 6px 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  color: #222;
+  white-space: nowrap;
+}
+
+.meteo-loading,
+.meteo-unavailable {
+  color: #888;
+}

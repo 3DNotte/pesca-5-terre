@@ -1,0 +1,69 @@
+{
+  "dentice": {
+    "label": "Dentice",
+    "seasonality_by_month": [0.15, 0.15, 0.2, 0.4, 0.7, 0.9, 1.0, 1.0, 0.9, 0.6, 0.3, 0.15],
+    "hourly_bands": [
+      { "start": 5, "end": 8, "score": 1.0 },
+      { "start": 8, "end": 11, "score": 0.5 },
+      { "start": 11, "end": 16, "score": 0.25 },
+      { "start": 16, "end": 19, "score": 0.6 },
+      { "start": 19, "end": 21, "score": 1.0 },
+      { "start": 21, "end": 5, "score": 0.35 }
+    ],
+    "disturbance_sensitivity": 0.8,
+    "structure_affinity": 1.0,
+    "notes": "Stanziale su fondali strutturati (secche, relitti, scarpate). Alba e tramonto privilegiati, attivita' ridotta nelle ore centrali estive ad alta pressione turistica."
+  },
+  "ricciola": {
+    "label": "Ricciola",
+    "seasonality_by_month": [0.2, 0.2, 0.3, 0.5, 0.8, 0.9, 0.9, 0.9, 1.0, 0.8, 0.4, 0.2],
+    "hourly_bands": [
+      { "start": 5, "end": 9, "score": 0.9 },
+      { "start": 9, "end": 17, "score": 0.65 },
+      { "start": 17, "end": 20, "score": 0.85 },
+      { "start": 20, "end": 5, "score": 0.4 }
+    ],
+    "disturbance_sensitivity": 0.5,
+    "structure_affinity": 0.6,
+    "notes": "Pelagica/opportunista, in transito lungo costa o su strutture verticali. Puo' cacciare in pieno giorno se il foraggio e' presente, ma tende al largo nelle ore di massimo traffico costiero estivo."
+  },
+  "leccia": {
+    "label": "Leccia",
+    "seasonality_by_month": [0.2, 0.2, 0.3, 0.5, 0.75, 0.85, 0.9, 0.9, 0.95, 0.75, 0.4, 0.2],
+    "hourly_bands": [
+      { "start": 5, "end": 9, "score": 0.85 },
+      { "start": 9, "end": 17, "score": 0.6 },
+      { "start": 17, "end": 20, "score": 0.8 },
+      { "start": 20, "end": 5, "score": 0.4 }
+    ],
+    "disturbance_sensitivity": 0.5,
+    "structure_affinity": 0.55,
+    "notes": "Simile alla ricciola ma piu' tollerante di acque intermedie; caccia banchi di pesce azzurro anche vicino a scogliere."
+  },
+  "barracuda": {
+    "label": "Barracuda mediterraneo",
+    "seasonality_by_month": [0.1, 0.1, 0.15, 0.3, 0.5, 0.85, 1.0, 1.0, 0.8, 0.4, 0.15, 0.1],
+    "hourly_bands": [
+      { "start": 5, "end": 9, "score": 0.8 },
+      { "start": 9, "end": 17, "score": 0.55 },
+      { "start": 17, "end": 20, "score": 0.75 },
+      { "start": 20, "end": 5, "score": 0.3 }
+    ],
+    "disturbance_sensitivity": 0.3,
+    "structure_affinity": 0.9,
+    "notes": "Legato a struttura fissa, minor raggio d'azione. Target di ripiego quando le condizioni penalizzano i pelagici in transito."
+  },
+  "serranidi": {
+    "label": "Serranidi",
+    "seasonality_by_month": [0.3, 0.3, 0.35, 0.5, 0.7, 0.85, 0.9, 0.9, 0.8, 0.6, 0.4, 0.3],
+    "hourly_bands": [
+      { "start": 5, "end": 9, "score": 0.75 },
+      { "start": 9, "end": 17, "score": 0.6 },
+      { "start": 17, "end": 20, "score": 0.7 },
+      { "start": 20, "end": 5, "score": 0.35 }
+    ],
+    "disturbance_sensitivity": 0.35,
+    "structure_affinity": 0.85,
+    "notes": "Legati a struttura fissa e tane, minor raggio d'azione. Attenzione: cernia e cernia di fondale sono specie protette e VIETATE alla pesca sportiva nell'AMP."
+  }
+}
