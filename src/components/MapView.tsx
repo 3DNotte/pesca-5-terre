@@ -567,11 +567,15 @@ export default function MapView() {
     const maxScore = Math.max(...scoreResult.top_spots.map((s) => s.score), 1)
 
     scoreResult.top_spots.forEach((spot, i) => {
+      const isTop = i === 0
       const el = document.createElement('div')
-      el.className = 'top-spot-fish-marker'
-      // Il primo hot spot (punteggio piu' alto) e' il pesce piu' grande: gerarchia visiva a colpo d'occhio.
-      const size = 30 + (spot.score / maxScore) * 14
-      el.innerHTML = fishIconSvg(colorForClassification(spot.classification), size)
+      // Il migliore non e' solo leggermente piu' grande: ha anche un alone
+      // pulsante e un badge, cosi' si riconosce a colpo d'occhio tra gli altri.
+      el.className = isTop ? 'top-spot-fish-marker top-spot-fish-marker-best' : 'top-spot-fish-marker'
+      const size = isTop ? 46 : 30 + (spot.score / maxScore) * 10
+      el.innerHTML =
+        (isTop ? '<div class="top-spot-halo"></div><div class="top-spot-badge">TOP</div>' : '') +
+        fishIconSvg(colorForClassification(spot.classification), size)
       const popupHtml = `
         <strong>Hot spot #${i + 1} — ${spot.classification}</strong><br/>
         Punteggio: ${spot.score}/100<br/>
