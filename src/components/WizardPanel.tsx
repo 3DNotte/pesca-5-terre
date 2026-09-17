@@ -64,7 +64,7 @@ export default function WizardPanel({
   if (!open) {
     return (
       <button type="button" className="wizard-fab" onClick={onToggleOpen} aria-label="Apri wizard">
-        <span className="wizard-fab-icon">☰</span> Trova dove pescare
+        <span className="wizard-fab-icon">☰</span> Peschiamo!
       </button>
     )
   }
