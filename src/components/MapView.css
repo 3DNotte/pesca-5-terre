@@ -78,8 +78,8 @@
 }
 
 .poi-marker-reef {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 0;
   border: none;
   box-shadow: none;
@@ -87,7 +87,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  /* Due ombre invece di una: una scura stretta per il bordo, una piu' ampia e
+     chiara per staccare l'icona dal rilievo del fondale sotto (che ha toni
+     simili al colore della secca ed era facile da confondere). */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
   transition: transform 0.15s ease;
 }
 

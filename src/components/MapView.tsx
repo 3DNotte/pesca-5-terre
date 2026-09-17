@@ -46,7 +46,7 @@ const FERRY_ROUTE_SOURCE_ID = 'ferry-route'
 const FERRY_ROUTE_LAYER_ID = 'ferry-route-line'
 
 const POI_TYPE_COLOR: Record<PoiType, string> = {
-  secca: '#c9752b',
+  secca: '#e8620c',
   relitto: '#8a1f1f',
   mangiata: '#1a5d1a',
 }
@@ -705,7 +705,7 @@ export default function MapView() {
         // le secche sono l'informazione di pesca piu' cercata, meritano di
         // risaltare piu' delle altre.
         el.className = 'poi-marker poi-marker-reef'
-        el.innerHTML = reefIconSvg(POI_TYPE_COLOR[poi.type], 22)
+        el.innerHTML = reefIconSvg(POI_TYPE_COLOR[poi.type], 34)
       } else {
         el.className = 'poi-marker'
         el.style.background = POI_TYPE_COLOR[poi.type]
