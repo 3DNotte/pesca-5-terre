@@ -53,7 +53,7 @@
       15,
       90
     ],
-    "notes": "Predatore solitario dal temperamento generalmente calmo e poco territoriale, ma molto piu' diffidente e difensivo durante la riproduzione (aprile-giugno, temperatura preferita media 18.1 gradi C, range 13-21 gradi C), quando risale verso fondali rocciosi sotto i 50m vicino a costa per deporre. Vive a stretto contatto del fondo tra 15 e 90m (range assoluto 0-200m), su secche miste di alga e roccia lontane da costa. Tecnica di caccia 'mordi e torna': attacca e uccide la preda, poi torna a inghiottirla — nella pesca a vivo conviene aspettare questa seconda abboccata prima di ferrare. Gli adulti cacciano talvolta in gruppo circondando le prede (rabattage). Alba e tramonto restano le finestre migliori, attivita' ridotta nelle ore centrali estive ad alta pressione turistica."
+    "notes": "Predatore solitario dal temperamento generalmente calmo e poco territoriale, ma molto piu' diffidente e difensivo durante la riproduzione (aprile-giugno, temperatura preferita media 18.1 gradi C, range 13-21 gradi C), quando risale verso fondali rocciosi sotto i 50m vicino a costa per deporre. Vive a stretto contatto del fondo tra 15 e 90m (range assoluto 0-200m), su secche miste di alga e roccia lontane da costa. Tecnica di caccia 'mordi e torna': attacca e uccide la preda, poi torna a inghiottirla — nella pesca a vivo conviene aspettare questa seconda abboccata prima di ferrare. Gli adulti cacciano talvolta in gruppo circondando le prede (rabattage). Alba e tramonto restano le finestre migliori, attivita' ridotta nelle ore centrali estive ad alta pressione turistica. Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 13.3-21.1 gradi C (media 18.1), range piu' ampio tollerato 10-25 gradi C."
   },
   "ricciola": {
     "label": "Ricciola",
@@ -99,7 +99,7 @@
       15,
       70
     ],
-    "notes": "Gregaria in piccoli banchi da giovane (sui 20m), piu' solitaria/diffidente/territoriale da adulta (fino a 70m; si avvicina a costa in riproduzione). Comportamento legato alla corrente, chiave per intercettarla: durante la caccia spinge il foraggio verso la superficie con attacchi rapidi e nervosi lungo scalini di profondita', cigli e pareti sommerse — corridoi naturali soprattutto con corrente da moderata a sostenuta — poi, terminato l'attacco, si porta sul fondo e si mette in corrente ad aspettare. In estate segue il pesce foraggio fin sotto il pelo dell'acqua: efficaci esche di superficie (popper, WTD, stickbait). Preda soprattutto pesce azzurro (tombarello, alletterato, sarde) e calamari."
+    "notes": "Gregaria in piccoli banchi da giovane (sui 20m), piu' solitaria/diffidente/territoriale da adulta (fino a 70m; si avvicina a costa in riproduzione). Comportamento legato alla corrente, chiave per intercettarla: durante la caccia spinge il foraggio verso la superficie con attacchi rapidi e nervosi lungo scalini di profondita', cigli e pareti sommerse — corridoi naturali soprattutto con corrente da moderata a sostenuta — poi, terminato l'attacco, si porta sul fondo e si mette in corrente ad aspettare. In estate segue il pesce foraggio fin sotto il pelo dell'acqua: efficaci esche di superficie (popper, WTD, stickbait). Preda soprattutto pesce azzurro (tombarello, alletterato, sarde) e calamari. Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 16.9-29 gradi C (media 27.1), range piu' ampio tollerato 8.7-32.4 gradi C."
   },
   "leccia": {
     "label": "Leccia",
@@ -145,7 +145,7 @@
       15,
       80
     ],
-    "notes": "Simile alla ricciola ma piu' tollerante di acque intermedie; caccia banchi di pesce azzurro anche vicino a scogliere."
+    "notes": "Simile alla ricciola ma piu' tollerante di acque intermedie; caccia banchi di pesce azzurro anche vicino a scogliere. Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 16.2-29 gradi C (media 26.3), range piu' ampio tollerato 8.9-31.8 gradi C. Crescita lenta (K=0.1/anno) ma lunghezza asintotica fino a 203cm."
   },
   "barracuda": {
     "label": "Barracuda mediterraneo",
@@ -191,7 +191,7 @@
       3,
       35
     ],
-    "notes": "Cacciatore d'agguato, non un grande nuotatore: resta immobile in corrente aspettando il passaggio delle prede, spesso su punte di scogliera/reef dove il gioco delle correnti concentra l'attivita'. Fondali bassi tipici 5-30m (raramente fino a 100m). Il tramonto e' la finestra piu' costante, soprattutto quando il cambio di luce coincide con corrente attiva; buona anche l'alba. Istinto riproduttivo lungo costa in primavera-inizio estate. Target di ripiego quando le condizioni penalizzano i pelagici in transito."
+    "notes": "Cacciatore d'agguato, non un grande nuotatore: resta immobile in corrente aspettando il passaggio delle prede, spesso su punte di scogliera/reef dove il gioco delle correnti concentra l'attivita'. Fondali bassi tipici 5-30m (raramente fino a 100m). Il tramonto e' la finestra piu' costante, soprattutto quando il cambio di luce coincide con corrente attiva; buona anche l'alba. Istinto riproduttivo lungo costa in primavera-inizio estate. Target di ripiego quando le condizioni penalizzano i pelagici in transito. Temperatura preferenziale delle due specie mediterranee (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): S. sphyraena 14.3-21.9 gradi C, S. viridensis 15.1-21.6 gradi C."
   },
   "serranidi": {
     "label": "Serranidi",
@@ -333,7 +333,7 @@
     "disturbance_sensitivity": 0.3,
     "structure_affinity": 0.1,
     "depth_range_m": null,
-    "notes": "Tonnetto alletterato/tombarello: caccia in gruppo con tattiche cooperative, circondando banchi di pesce foraggio e alternandosi nelle immersioni. In superficie il mare 'si trasforma in pochi secondi': uccelli in tuffo, acciughe o sardine che saltano, scie nervose e spruzzi improvvisi segnalano il banco in caccia — si pesca leggendo questi segnali, non il fondale. Non serve andare al largo: presente e catturato anche sotto costa nel Mar Ligure, soprattutto da fine estate a inizio autunno. Pelagico di superficie puro: l'affinita' di struttura del fondale e' quasi irrilevante, conta il pesce foraggio in transito."
+    "notes": "Tonnetto alletterato/tombarello: caccia in gruppo con tattiche cooperative, circondando banchi di pesce foraggio e alternandosi nelle immersioni. In superficie il mare 'si trasforma in pochi secondi': uccelli in tuffo, acciughe o sardine che saltano, scie nervose e spruzzi improvvisi segnalano il banco in caccia — si pesca leggendo questi segnali, non il fondale. Non serve andare al largo: presente e catturato anche sotto costa nel Mar Ligure, soprattutto da fine estate a inizio autunno. Pelagico di superficie puro: l'affinita' di struttura del fondale e' quasi irrilevante, conta il pesce foraggio in transito. Temperatura preferenziale del tonnetto alletterato (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 11.5-27.8 gradi C (media 23.3), crescita rapida (K=0.1/anno secondo il modello, lunghezza asintotica 112cm)."
   },
   "lampuga": {
     "label": "Lampuga",
@@ -376,7 +376,7 @@
     "disturbance_sensitivity": 0.2,
     "structure_affinity": 0.1,
     "depth_range_m": null,
-    "notes": "Specie pelagica gregaria in acque calde (21-30 gradi C), si avvicina a costa in primavera per la riproduzione ('tempo di caponi'), ma la stagione praticamente piu' pescosa e' fine estate-autunno quando i nati di primavera, a crescita fortissima, raggiungono taglia da cattura (pesca ricreativa UE consentita 15 agosto - 31 dicembre: verificare sempre il calendario vigente). Comportamento poco legato all'orario e molto agli oggetti galleggianti: tronchi, detriti, cannizzi e linee di corrente/convergenza fanno ombra e attirano banchi anche numerosi (tecnica siciliana dei cannizzi). Curiosa e poco diffidente verso le imbarcazioni. La morfologia del fondale non conta: conta trovare oggetti alla deriva o linee di corrente in superficie."
+    "notes": "Specie pelagica gregaria in acque calde (21-30 gradi C), si avvicina a costa in primavera per la riproduzione ('tempo di caponi'), ma la stagione praticamente piu' pescosa e' fine estate-autunno quando i nati di primavera, a crescita fortissima, raggiungono taglia da cattura (pesca ricreativa UE consentita 15 agosto - 31 dicembre: verificare sempre il calendario vigente). Comportamento poco legato all'orario e molto agli oggetti galleggianti: tronchi, detriti, cannizzi e linee di corrente/convergenza fanno ombra e attirano banchi anche numerosi (tecnica siciliana dei cannizzi). Curiosa e poco diffidente verso le imbarcazioni. La morfologia del fondale non conta: conta trovare oggetti alla deriva o linee di corrente in superficie. Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 18.1-29.1 gradi C (media 27.4) — coerente con la preferenza per acque calde gia' nota. Crescita fortissima (K=2.6/anno), lunghezza asintotica 138cm."
   },
   "serra": {
     "label": "Pesce serra",
@@ -422,6 +422,6 @@
       2,
       30
     ],
-    "notes": "Gregario in banchi numerosi da giovane, tendenzialmente solitario da adulto. Predatore opportunista e straordinariamente vorace: quando un banco caccia, uccide molte piu' prede di quante ne consumi, lasciando dietro di se' una scia di pesce morto e mutilato — riconoscibile in mare da questo segnale. Euriialino: risale nelle foci di torrenti e fiumi cacciando cefali. Cerca le zone dove la corrente concentra il pesce foraggio vicino a riva, piu' che una struttura fissa. Migratore stagionale: d'inverno si sposta verso acque piu' calde, quindi in Liguria la presenza reale e' da primavera ad autunno (riproduzione marzo-agosto)."
+    "notes": "Gregario in banchi numerosi da giovane, tendenzialmente solitario da adulto. Predatore opportunista e straordinariamente vorace: quando un banco caccia, uccide molte piu' prede di quante ne consumi, lasciando dietro di se' una scia di pesce morto e mutilato — riconoscibile in mare da questo segnale. Euriialino: risale nelle foci di torrenti e fiumi cacciando cefali. Cerca le zone dove la corrente concentra il pesce foraggio vicino a riva, piu' che una struttura fissa. Migratore stagionale: d'inverno si sposta verso acque piu' calde, quindi in Liguria la presenza reale e' da primavera ad autunno (riproduzione marzo-agosto). Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 8.4-27.5 gradi C (media 21.1) — range ampio, coerente con la specie migratrice euriterma."
   }
 }
