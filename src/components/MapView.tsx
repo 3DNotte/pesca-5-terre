@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
 import { usePois } from '../hooks/usePois'
 import type { PoiType } from '../types/poi'
