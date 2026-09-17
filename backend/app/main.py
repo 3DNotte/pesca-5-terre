@@ -99,6 +99,11 @@ def get_weights():
 def get_score(
     species: str = Query(..., description="Chiave specie, es. dentice"),
     at: str | None = Query(None, description="ISO datetime, default ora corrente"),
+    end: str | None = Query(
+        None,
+        description="Fine finestra (ISO datetime), opzionale: se presente si campiona tra "
+        "'at' ed 'end' e si sceglie il momento migliore, invece di un solo istante",
+    ),
     top_n: int = Query(5, ge=1, le=20),
     w1_morfologia: float | None = Query(None, ge=0, le=1),
     w2_stagionale: float | None = Query(None, ge=0, le=1),
@@ -118,15 +123,41 @@ def get_score(
         "w5_meteo_mare": w5_meteo_mare,
     }
     weights = {key: (val if val is not None else WEIGHTS[key]) for key, val in overrides.items()}
+    profile = profiles[species]
 
-    dt = datetime.fromisoformat(at) if at else datetime.now()
-    result = compute_score_grid(profiles[species], dt, weights)
+    dt_start = datetime.fromisoformat(at) if at else datetime.now()
+    dt_end = datetime.fromisoformat(end) if end else None
+    if dt_end is not None and dt_end > dt_start:
+        # Stessa logica del wizard (sezione /api/wizard): si campiona la
+        # finestra a N punti e si tiene il momento con lo score migliore,
+        # invece di valutare un solo istante fisso.
+        span_seconds = (dt_end - dt_start).total_seconds()
+        n_samples = 4 if span_seconds > 3600 else 2
+        sample_times = [
+            dt_start + timedelta(seconds=span_seconds * i / (n_samples - 1)) for i in range(n_samples)
+        ]
+        best_score = -np.inf
+        dt = dt_start
+        result = None
+        for candidate_dt in sample_times:
+            candidate_result = compute_score_grid(profile, candidate_dt, weights)
+            candidate_score = candidate_result["score"]
+            local_max = float(np.nanmax(candidate_score)) if np.isfinite(candidate_score).any() else -np.inf
+            if local_max > best_score:
+                best_score = local_max
+                dt = candidate_dt
+                result = candidate_result
+    else:
+        dt = dt_start
+        result = compute_score_grid(profile, dt, weights)
+
     grid = load_morphology()
     score = result["score"]
 
     return {
         "species": species,
         "datetime": dt.isoformat(),
+        "time_window": {"start": dt_start.isoformat(), "end": dt_end.isoformat()} if dt_end else None,
         "weights": weights,
         "meteo": {"available": result["meteo_available"], "conditions": result["conditions"]},
         "grid": _grid_payload(score, grid),

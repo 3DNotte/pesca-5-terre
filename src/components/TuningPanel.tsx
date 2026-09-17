@@ -12,6 +12,13 @@ const TIME_PRESETS: { label: string; hour: number }[] = [
   { label: 'Notte', hour: 23 },
 ]
 
+const DURATION_PRESETS: { label: string; hours: number }[] = [
+  { label: '1 ora', hours: 1 },
+  { label: '2 ore', hours: 2 },
+  { label: '3 ore', hours: 3 },
+  { label: '4+ ore', hours: 4 },
+]
+
 function toLocalInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
@@ -25,6 +32,8 @@ interface Props {
   onSelectSpecies: (key: string) => void
   dateTime: Date
   onChangeDateTime: (d: Date) => void
+  durationHours: number
+  onChangeDurationHours: (h: number) => void
   weights: Weights
   defaultWeights: Weights | null
   onChangeWeights: (w: Weights) => void
@@ -42,6 +51,8 @@ export default function TuningPanel({
   onSelectSpecies,
   dateTime,
   onChangeDateTime,
+  durationHours,
+  onChangeDurationHours,
   weights,
   defaultWeights,
   onChangeWeights,
@@ -110,6 +121,34 @@ export default function TuningPanel({
         ))}
       </div>
 
+      <label className="tuning-field">
+        Tempo disponibile
+        <span className="tuning-duration-hint">
+          {durationHours > 0
+            ? `il calcolo cerca il momento migliore entro ${durationHours}h da quell'orario`
+            : "solo l'orario esatto scelto sopra"}
+        </span>
+      </label>
+      <div className="tuning-presets">
+        {DURATION_PRESETS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            className={durationHours === p.hours ? 'active' : ''}
+            onClick={() => onChangeDurationHours(p.hours)}
+          >
+            {p.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={durationHours === 0 ? 'active' : ''}
+          onClick={() => onChangeDurationHours(0)}
+        >
+          Solo quest'ora
+        </button>
+      </div>
+
       <button type="button" className="tuning-run" onClick={onRun} disabled={loading}>
         {loading ? 'Calcolo…' : 'Esegui simulazione'}
       </button>
@@ -126,6 +165,17 @@ export default function TuningPanel({
           punteggio {result.top_spots[0]?.score ?? '–'}/100, profondita' stimata{' '}
           {result.top_spots[0]?.depth_m ?? '–'} m. {result.top_spots.length} hot spot 🐟 mostrati in
           mappa.
+          {result.time_window && (
+            <>
+              {' '}
+              Momento migliore nella finestra:{' '}
+              {new Date(result.datetime).toLocaleTimeString('it-IT', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              .
+            </>
+          )}
         </div>
       )}
 

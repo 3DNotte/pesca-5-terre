@@ -84,6 +84,18 @@
   cursor: pointer;
 }
 
+.tuning-presets button.active {
+  background: #1e5aa8;
+  border-color: #1e5aa8;
+  color: #fff;
+}
+
+.tuning-duration-hint {
+  color: #777;
+  font-size: 11px;
+  font-weight: 400;
+}
+
 .tuning-run {
   font: inherit;
   font-weight: 600;

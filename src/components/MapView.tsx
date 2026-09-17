@@ -156,6 +156,7 @@ export default function MapView() {
 
   const [tuningOpen, setTuningOpen] = useState(false)
   const [simDateTime, setSimDateTime] = useState(() => new Date())
+  const [simDurationHours, setSimDurationHours] = useState(2)
   const [defaultWeights, setDefaultWeights] = useState<Weights | null>(null)
   const [weights, setWeights] = useState<Weights>({
     w1_morfologia: 0.35,
@@ -186,7 +187,11 @@ export default function MapView() {
   const handleRunSimulation = () => {
     setScoreLoading(true)
     setScoreError(null)
-    fetchScore(selectedSpecies, simDateTime, weights)
+    const end =
+      simDurationHours > 0
+        ? new Date(simDateTime.getTime() + simDurationHours * 3600_000)
+        : undefined
+    fetchScore(selectedSpecies, simDateTime, weights, end)
       .then(setScoreResult)
       .catch((err) => setScoreError(err instanceof Error ? err.message : 'Errore sconosciuto'))
       .finally(() => setScoreLoading(false))
@@ -987,6 +992,8 @@ export default function MapView() {
         onSelectSpecies={setSelectedSpecies}
         dateTime={simDateTime}
         onChangeDateTime={setSimDateTime}
+        durationHours={simDurationHours}
+        onChangeDurationHours={setSimDurationHours}
         weights={weights}
         defaultWeights={defaultWeights}
         onChangeWeights={setWeights}
