@@ -76,12 +76,16 @@ def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | No
 
 
 def classify_score(value: float) -> str:
+    # Soglie calibrate su feedback diretto dell'utente (esperienza reale in
+    # barca sulla costiera Punta Mesco-Punta di Montenero): erano piu' severe
+    # (70/50/30). Qui cambia solo l'ETICHETTA associata a un punteggio, non il
+    # punteggio numerico stesso, che resta calcolato come prima.
     if np.isnan(value):
         return "n/d"
-    if value >= 70:
+    if value >= 62:
         return "molto probabile"
-    if value >= 50:
+    if value >= 42:
         return "buono"
-    if value >= 30:
+    if value >= 25:
         return "da provare"
     return "sconsigliato"

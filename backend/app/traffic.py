@@ -99,7 +99,11 @@ def _ferry_pressure(grid: MorphologyGrid, lon_grid: np.ndarray, lat_grid: np.nda
 def _boat_tour_pressure(grid: MorphologyGrid, dt: datetime) -> np.ndarray:
     near_coast = np.clip(1 - grid.distance_to_coast_m / BOAT_TOUR_COAST_BAND_M, 0, 1)
     in_peak_hours = any(start <= dt.hour < end for start, end in BOAT_TOUR_HOURS)
-    base = 0.6 if in_peak_hours else 0.15
+    # Base abbassata (era 0.6/0.15): euristica dichiarata come stima, non
+    # dato misurato — calibrata verso il basso su feedback diretto
+    # dell'utente, che sul tratto Punta Mesco-Punta di Montenero la trovava
+    # sovrastimata rispetto al traffico reale percepito in barca.
+    base = 0.45 if in_peak_hours else 0.10
     # Stagionalita' grezza: piu' turismo via mare in stagione calda (giu-set).
     seasonal_factor = 1.0 if dt.month in (6, 7, 8, 9) else 0.4
     return (base * seasonal_factor * near_coast).astype(np.float32)
@@ -109,7 +113,7 @@ def _diporto_pressure(grid: MorphologyGrid, dt: datetime) -> np.ndarray:
     near_coast = np.clip(1 - grid.distance_to_coast_m / (BOAT_TOUR_COAST_BAND_M * 2), 0, 1)
     weekend_factor = 1.0 if dt.weekday() >= 5 else 0.5
     seasonal_factor = 1.0 if dt.month in (6, 7, 8, 9) else 0.25
-    base = 0.35
+    base = 0.25  # era 0.35, stessa calibrazione di _boat_tour_pressure
     return (base * weekend_factor * seasonal_factor * near_coast).astype(np.float32)
 
 
