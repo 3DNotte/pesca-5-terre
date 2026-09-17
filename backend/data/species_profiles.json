@@ -49,6 +49,10 @@
     ],
     "disturbance_sensitivity": 0.8,
     "structure_affinity": 1.0,
+    "depth_range_m": [
+      15,
+      90
+    ],
     "notes": "Predatore solitario dal temperamento generalmente calmo e poco territoriale, ma molto piu' diffidente e difensivo durante la riproduzione (aprile-giugno, temperatura preferita media 18.1 gradi C, range 13-21 gradi C), quando risale verso fondali rocciosi sotto i 50m vicino a costa per deporre. Vive a stretto contatto del fondo tra 15 e 90m (range assoluto 0-200m), su secche miste di alga e roccia lontane da costa. Tecnica di caccia 'mordi e torna': attacca e uccide la preda, poi torna a inghiottirla — nella pesca a vivo conviene aspettare questa seconda abboccata prima di ferrare. Gli adulti cacciano talvolta in gruppo circondando le prede (rabattage). Alba e tramonto restano le finestre migliori, attivita' ridotta nelle ore centrali estive ad alta pressione turistica."
   },
   "ricciola": {
@@ -91,6 +95,10 @@
     ],
     "disturbance_sensitivity": 0.5,
     "structure_affinity": 0.6,
+    "depth_range_m": [
+      15,
+      70
+    ],
     "notes": "Gregaria in piccoli banchi da giovane (sui 20m), piu' solitaria/diffidente/territoriale da adulta (fino a 70m; si avvicina a costa in riproduzione). Comportamento legato alla corrente, chiave per intercettarla: durante la caccia spinge il foraggio verso la superficie con attacchi rapidi e nervosi lungo scalini di profondita', cigli e pareti sommerse — corridoi naturali soprattutto con corrente da moderata a sostenuta — poi, terminato l'attacco, si porta sul fondo e si mette in corrente ad aspettare. In estate segue il pesce foraggio fin sotto il pelo dell'acqua: efficaci esche di superficie (popper, WTD, stickbait). Preda soprattutto pesce azzurro (tombarello, alletterato, sarde) e calamari."
   },
   "leccia": {
@@ -133,6 +141,10 @@
     ],
     "disturbance_sensitivity": 0.5,
     "structure_affinity": 0.55,
+    "depth_range_m": [
+      15,
+      80
+    ],
     "notes": "Simile alla ricciola ma piu' tollerante di acque intermedie; caccia banchi di pesce azzurro anche vicino a scogliere."
   },
   "barracuda": {
@@ -175,6 +187,10 @@
     ],
     "disturbance_sensitivity": 0.3,
     "structure_affinity": 0.9,
+    "depth_range_m": [
+      3,
+      35
+    ],
     "notes": "Cacciatore d'agguato, non un grande nuotatore: resta immobile in corrente aspettando il passaggio delle prede, spesso su punte di scogliera/reef dove il gioco delle correnti concentra l'attivita'. Fondali bassi tipici 5-30m (raramente fino a 100m). Il tramonto e' la finestra piu' costante, soprattutto quando il cambio di luce coincide con corrente attiva; buona anche l'alba. Istinto riproduttivo lungo costa in primavera-inizio estate. Target di ripiego quando le condizioni penalizzano i pelagici in transito."
   },
   "serranidi": {
@@ -217,6 +233,10 @@
     ],
     "disturbance_sensitivity": 0.35,
     "structure_affinity": 0.85,
+    "depth_range_m": [
+      10,
+      60
+    ],
     "notes": "Legati a struttura fissa e tane, minor raggio d'azione. Attenzione: cernia e cernia di fondale sono specie protette e VIETATE alla pesca sportiva nell'AMP."
   },
   "tonno_rosso_adulto": {
@@ -259,6 +279,7 @@
     ],
     "disturbance_sensitivity": 0.7,
     "structure_affinity": 0.15,
+    "depth_range_m": null,
     "notes": "Per gran parte dell'anno vive isolato o in piccoli gruppi in fase erratica a grandi profondita' (epipelagico 0-200m, ma con immersioni notturne di alimentazione fino a 500-1000m: di notte e' di fatto irraggiungibile da barca costiera). Da meta' maggio a meta' luglio cambia comportamento: si raduna in grandi banchi e risale verso costa fino a soli 9-10m di profondita', ripercorrendo sempre le stesse rotte migratorie per la riproduzione — questa e' la finestra realistica per un piccolo natante. Sensibile a variazioni termiche e di salinita'. Specie pelagica pura: la morfologia del fondale conta molto poco, contano la rotta migratoria e la temperatura dell'acqua."
   },
   "tonno_branco": {
@@ -311,6 +332,7 @@
     ],
     "disturbance_sensitivity": 0.3,
     "structure_affinity": 0.1,
+    "depth_range_m": null,
     "notes": "Tonnetto alletterato/tombarello: caccia in gruppo con tattiche cooperative, circondando banchi di pesce foraggio e alternandosi nelle immersioni. In superficie il mare 'si trasforma in pochi secondi': uccelli in tuffo, acciughe o sardine che saltano, scie nervose e spruzzi improvvisi segnalano il banco in caccia — si pesca leggendo questi segnali, non il fondale. Non serve andare al largo: presente e catturato anche sotto costa nel Mar Ligure, soprattutto da fine estate a inizio autunno. Pelagico di superficie puro: l'affinita' di struttura del fondale e' quasi irrilevante, conta il pesce foraggio in transito."
   },
   "lampuga": {
@@ -353,6 +375,7 @@
     ],
     "disturbance_sensitivity": 0.2,
     "structure_affinity": 0.1,
+    "depth_range_m": null,
     "notes": "Specie pelagica gregaria in acque calde (21-30 gradi C), si avvicina a costa in primavera per la riproduzione ('tempo di caponi'), ma la stagione praticamente piu' pescosa e' fine estate-autunno quando i nati di primavera, a crescita fortissima, raggiungono taglia da cattura (pesca ricreativa UE consentita 15 agosto - 31 dicembre: verificare sempre il calendario vigente). Comportamento poco legato all'orario e molto agli oggetti galleggianti: tronchi, detriti, cannizzi e linee di corrente/convergenza fanno ombra e attirano banchi anche numerosi (tecnica siciliana dei cannizzi). Curiosa e poco diffidente verso le imbarcazioni. La morfologia del fondale non conta: conta trovare oggetti alla deriva o linee di corrente in superficie."
   },
   "serra": {
@@ -395,6 +418,10 @@
     ],
     "disturbance_sensitivity": 0.3,
     "structure_affinity": 0.3,
+    "depth_range_m": [
+      2,
+      30
+    ],
     "notes": "Gregario in banchi numerosi da giovane, tendenzialmente solitario da adulto. Predatore opportunista e straordinariamente vorace: quando un banco caccia, uccide molte piu' prede di quante ne consumi, lasciando dietro di se' una scia di pesce morto e mutilato — riconoscibile in mare da questo segnale. Euriialino: risale nelle foci di torrenti e fiumi cacciando cefali. Cerca le zone dove la corrente concentra il pesce foraggio vicino a riva, piu' che una struttura fissa. Migratore stagionale: d'inverno si sposta verso acque piu' calde, quindi in Liguria la presenza reale e' da primavera ad autunno (riproduzione marzo-agosto)."
   }
 }

@@ -20,6 +20,11 @@ class SpeciesProfile:
     hourly_bands: list[HourlyBand]
     disturbance_sensitivity: float
     structure_affinity: float
+    # Range di profondita' realistico (metri, positivi) in cui la specie vive
+    # davvero secondo le fonti consultate. None per i pelagici puri (tonni,
+    # lampuga) la cui posizione dipende da rotte/correnti/oggetti galleggianti,
+    # non dal fondale — per loro la profondita' non va vincolata.
+    depth_range_m: tuple[float, float] | None
     notes: str
 
     def seasonal_score(self, month: int) -> float:
@@ -49,6 +54,7 @@ def load_species_profiles() -> dict[str, SpeciesProfile]:
             hourly_bands=[HourlyBand(**b) for b in data["hourly_bands"]],
             disturbance_sensitivity=data["disturbance_sensitivity"],
             structure_affinity=data["structure_affinity"],
+            depth_range_m=tuple(data["depth_range_m"]) if data.get("depth_range_m") else None,
             notes=data["notes"],
         )
     return profiles

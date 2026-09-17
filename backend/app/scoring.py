@@ -24,11 +24,33 @@ from .species import SpeciesProfile
 from .traffic import traffic_pressure
 
 
+def depth_fit_score(elevation: np.ndarray, depth_range_m: tuple[float, float] | None) -> np.ndarray:
+    """1.0 dentro il range di profondita' reale della specie, sfuma a 0 fuori
+    (transizione morbida, non un taglio netto — una secca a 95m per una specie
+    tipica fino a 90m non e' irreale come una a 200m). None = nessun vincolo
+    (pelagici puri: la loro posizione dipende da rotta/corrente, non dal
+    fondale, quindi non va scartata nessuna cella per profondita')."""
+    if depth_range_m is None:
+        return np.ones_like(elevation, dtype=np.float32)
+    depth_m = -elevation  # elevation negativa in mare
+    lo, hi = depth_range_m
+    margin = max((hi - lo) * 0.4, 10.0)
+    fit = np.ones_like(depth_m, dtype=np.float32)
+    fit = np.where(depth_m < lo, np.clip(1 - (lo - depth_m) / margin, 0, 1), fit)
+    fit = np.where(depth_m > hi, np.clip(1 - (depth_m - hi) / margin, 0, 1), fit)
+    return fit.astype(np.float32)
+
+
 def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | None = None) -> dict:
     grid: MorphologyGrid = load_morphology()
     w = weights if weights is not None else WEIGHTS
 
-    morfologia = morphology_score(grid) * species.structure_affinity
+    # La struttura conta solo se e' alla profondita' in cui la specie vive
+    # davvero (sezione "Il problema reale" — prima una secca interessante a
+    # 100m poteva vincere anche per specie sottocosta come il serra).
+    morfologia = (
+        morphology_score(grid) * species.structure_affinity * depth_fit_score(grid.elevation, species.depth_range_m)
+    )
     stagionale = np.full(grid.shape, species.seasonal_score(dt.month), dtype=np.float32)
     orario = np.full(grid.shape, species.hourly_score(dt.hour), dtype=np.float32)
     pressione = traffic_pressure(grid, dt)
