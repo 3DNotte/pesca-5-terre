@@ -18,18 +18,14 @@ import AddPoiForm from './AddPoiForm'
 import SessionFeedbackForm from './SessionFeedbackForm'
 import { useSessionFeedback } from '../hooks/useSessionFeedback'
 import {
-  fetchScore,
   fetchSpecies,
-  fetchWeights,
   fetchWizard,
   type ScoreResponse,
   type SpeciesInfo,
-  type Weights,
   type WizardResponse,
 } from '../api/scoring'
 import { imageCoordinates, scoreGridToDataUrl } from '../utils/heatmap'
 import { colorForClassification, fishIconSvg } from '../utils/fishIcon'
-import TuningPanel from './TuningPanel'
 import WizardPanel from './WizardPanel'
 import MeteoWidget from './MeteoWidget'
 import './MapView.css'
@@ -151,10 +147,7 @@ export default function MapView() {
   const { notes: wreckNotes, setNote: setWreckNote } = useWreckNotes()
 
   const [speciesList, setSpeciesList] = useState<SpeciesInfo[]>([])
-  const [selectedSpecies, setSelectedSpecies] = useState('dentice')
   const [scoreResult, setScoreResult] = useState<ScoreResponse | null>(null)
-  const [scoreLoading, setScoreLoading] = useState(false)
-  const [scoreError, setScoreError] = useState<string | null>(null)
   const [scoreVisible, setScoreVisible] = useState(true)
   const topSpotMarkersRef = useRef<maplibregl.Marker[]>([])
 
@@ -162,48 +155,17 @@ export default function MapView() {
 
   const [legendCollapsed, setLegendCollapsed] = useState(false)
 
-  const [tuningOpen, setTuningOpen] = useState(false)
-  const [simDateTime, setSimDateTime] = useState(() => new Date())
-  const [simDurationHours, setSimDurationHours] = useState(2)
-  const [defaultWeights, setDefaultWeights] = useState<Weights | null>(null)
-  const [weights, setWeights] = useState<Weights>({
-    w1_morfologia: 0.35,
-    w2_stagionale: 0.2,
-    w3_orario: 0.2,
-    w4_traffico: 0.2,
-    w5_meteo_mare: 0.05,
-  })
-
   const { pois, addPoi, removePoi } = usePois()
 
   useEffect(() => {
     fetchSpecies()
       .then(setSpeciesList)
       .catch(() => setSpeciesList([]))
-    fetchWeights()
-      .then((w) => {
-        setDefaultWeights(w)
-        setWeights(w)
-      })
-      .catch(() => {})
     fetch(withCacheBust('/data/relitti_ukho.geojson'))
       .then((r) => r.json())
       .then((data: WreckCollection) => setWrecks(data.features))
       .catch(() => setWrecks([]))
   }, [])
-
-  const handleRunSimulation = () => {
-    setScoreLoading(true)
-    setScoreError(null)
-    const end =
-      simDurationHours > 0
-        ? new Date(simDateTime.getTime() + simDurationHours * 3600_000)
-        : undefined
-    fetchScore(selectedSpecies, simDateTime, weights, end)
-      .then(setScoreResult)
-      .catch((err) => setScoreError(err instanceof Error ? err.message : 'Errore sconosciuto'))
-      .finally(() => setScoreLoading(false))
-  }
 
   const [wizardOpen, setWizardOpen] = useState(false)
   const [wizardResult, setWizardResult] = useState<WizardResponse | null>(null)
@@ -223,7 +185,6 @@ export default function MapView() {
         setWizardResult(result)
         setScoreResult(result)
         setScoreVisible(true)
-        setSelectedSpecies(result.species)
         const map = mapRef.current
         if (map && result.top_spots.length > 0) {
           const bounds = new maplibregl.LngLatBounds()
@@ -1053,25 +1014,6 @@ export default function MapView() {
         error={wizardError}
         result={wizardResult}
         onSubmit={handleWizardSubmit}
-      />
-
-      <TuningPanel
-        open={tuningOpen}
-        onToggleOpen={() => setTuningOpen((v) => !v)}
-        speciesList={speciesList}
-        selectedSpecies={selectedSpecies}
-        onSelectSpecies={setSelectedSpecies}
-        dateTime={simDateTime}
-        onChangeDateTime={setSimDateTime}
-        durationHours={simDurationHours}
-        onChangeDurationHours={setSimDurationHours}
-        weights={weights}
-        defaultWeights={defaultWeights}
-        onChangeWeights={setWeights}
-        onRun={handleRunSimulation}
-        loading={scoreLoading}
-        error={scoreError}
-        result={scoreResult}
       />
 
       <div className={`layer-panel${legendCollapsed ? ' layer-panel--collapsed' : ''}`}>
