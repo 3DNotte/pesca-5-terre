@@ -3,7 +3,7 @@ import type { SpeciesInfo, WizardResponse } from '../api/scoring'
 import { defaultTimeWindow } from '../utils/sunTimes'
 import './WizardPanel.css'
 
-const BAIT_OPTIONS = ['Sugherello', 'Aguglia', 'Occhiata', 'Altro vivo', 'Artificiale']
+const BAIT_OPTIONS = ['Sugherello', 'Aguglia', 'Occhiata', 'Cefalopodi', 'Altro vivo', 'Artificiale']
 
 function toLocalInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
