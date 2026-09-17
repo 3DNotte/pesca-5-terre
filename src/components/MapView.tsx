@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
+import { bearingDegrees, compassLabel, distanceMeters } from '../utils/geo'
 import { usePois } from '../hooks/usePois'
 import type { PoiType } from '../types/poi'
 import { POI_TYPE_LABELS } from '../types/poi'
@@ -91,13 +92,16 @@ function withCacheBust(path: string): string {
   return `${path}?v=${DATA_CACHE_BUST}`
 }
 
-// Link "Naviga qui" per i popup: apre Google Maps sul telefono con il punto
-// gia' impostato come destinazione. Al tocco su "Indicazioni", Maps usa da
-// solo la posizione GPS del telefono come partenza — niente altro da
-// configurare, funziona su qualunque cellulare senza un'app nautica dedicata.
+// Distanza e rotta live per i popup, calcolate in JS dal GPS del telefono
+// senza uscire dall'app (vedi useEffect "Distanza/rotta live" piu' sotto, che
+// aggiorna periodicamente ogni elemento .nav-live presente nel DOM). Il link
+// a Google Maps resta come opzione secondaria per la navigazione vera e propria.
 function navigateLinkHtml(lat: number, lon: number): string {
   const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-  return `<a class="poi-popup-navigate" href="${url}" target="_blank" rel="noopener noreferrer">📍 Naviga qui</a>`
+  return `
+    <div class="poi-popup-navlive nav-live" data-lat="${lat}" data-lon="${lon}">📍 in attesa GPS…</div>
+    <a class="poi-popup-navigate" href="${url}" target="_blank" rel="noopener noreferrer">Apri in Google Maps</a>
+  `
 }
 
 function blankTransparentPixel(): string {
@@ -913,6 +917,58 @@ export default function MapView() {
       catchMarkersRef.current.set(c.id, marker)
     }
   }, [catches, catchesVisible, updateCatch, removeCatch])
+
+  // Distanza/rotta live nei popup ("Naviga qui" -> navigateLinkHtml): niente
+  // bussola grafica (il magnetometro del telefono in barca, vicino a motore e
+  // scafo metallico, e' inaffidabile) — solo distanza e rotta in gradi, come
+  // il "vai al waypoint" di un GPS da barca. Il GPS parte solo alla prima
+  // apertura di un popup con questo dato (non subito al caricamento pagina),
+  // rilevato passivamente controllando se esiste gia' un elemento .nav-live
+  // nel DOM: i popup di MapLibre esistono nel DOM solo mentre sono aperti.
+  const liveNavWatchId = useRef<number | null>(null)
+  const liveNavPosition = useRef<[number, number] | null>(null) // [lon, lat]
+
+  useEffect(() => {
+    const updateLiveNavElements = () => {
+      const els = document.querySelectorAll<HTMLElement>('.nav-live')
+      if (els.length === 0) return
+
+      if (liveNavWatchId.current == null && 'geolocation' in navigator) {
+        liveNavWatchId.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
+          },
+          () => {
+            liveNavPosition.current = null
+          },
+          { enableHighAccuracy: true, maximumAge: 5000 },
+        )
+      }
+
+      const here = liveNavPosition.current
+      for (const el of els) {
+        const lat = Number(el.dataset.lat)
+        const lon = Number(el.dataset.lon)
+        if (!here) {
+          el.textContent = '📍 in attesa GPS…'
+          continue
+        }
+        const dist = distanceMeters(here, [lon, lat])
+        const brg = bearingDegrees(here, [lon, lat])
+        const distStr = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`
+        el.textContent = `📍 ${distStr} · rotta ${Math.round(brg)}° (${compassLabel(brg)})`
+      }
+    }
+
+    const interval = setInterval(updateLiveNavElements, 2000)
+    return () => {
+      clearInterval(interval)
+      if (liveNavWatchId.current != null) {
+        navigator.geolocation.clearWatch(liveNavWatchId.current)
+        liveNavWatchId.current = null
+      }
+    }
+  }, [])
 
   // Cattura al volo: posizione GPS del telefono in questo istante, non un
   // punto scelto sulla mappa — pensato per essere usato in un secondo con le
