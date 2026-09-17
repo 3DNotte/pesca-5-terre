@@ -39,7 +39,6 @@ export default function WizardPanel({
   const [end, setEnd] = useState(initialWindow.end)
   const [surprise, setSurprise] = useState(true)
   const [selectedSpecies, setSelectedSpecies] = useState<string[]>([])
-  const [bottomFishing, setBottomFishing] = useState(true)
   const [baits, setBaits] = useState<string[]>([])
   const [luckyCharm, setLuckyCharm] = useState<boolean | null>(null)
 
@@ -58,7 +57,7 @@ export default function WizardPanel({
       start,
       end,
       species: surprise ? [] : selectedSpecies,
-      bottomFishing,
+      bottomFishing: true,
     })
   }
 
@@ -119,27 +118,7 @@ export default function WizardPanel({
       </div>
 
       <div className="wizard-question">
-        <div className="wizard-question-label">3. Puoi pescare al fondo?</div>
-        <div className="wizard-toggle-row">
-          <button
-            type="button"
-            className={`wizard-toggle${bottomFishing ? ' active' : ''}`}
-            onClick={() => setBottomFishing(true)}
-          >
-            Sì
-          </button>
-          <button
-            type="button"
-            className={`wizard-toggle${!bottomFishing ? ' active' : ''}`}
-            onClick={() => setBottomFishing(false)}
-          >
-            No, solo a mezz'acqua
-          </button>
-        </div>
-      </div>
-
-      <div className="wizard-question">
-        <div className="wizard-question-label">4. Che esche hai?</div>
+        <div className="wizard-question-label">3. Che esche hai?</div>
         <div className="wizard-chip-row">
           {BAIT_OPTIONS.map((bait) => (
             <button
@@ -155,7 +134,7 @@ export default function WizardPanel({
       </div>
 
       <div className="wizard-question">
-        <div className="wizard-question-label">5. Hai un portafortuna a bordo?</div>
+        <div className="wizard-question-label">4. Hai un portafortuna a bordo?</div>
         <div className="wizard-toggle-row">
           <button
             type="button"
