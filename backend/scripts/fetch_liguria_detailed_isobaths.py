@@ -12,7 +12,10 @@ paginazione WFS 2.0.0 (STARTINDEX/COUNT) — un'unica richiesta si ferma a
 5000 feature per limite server, quindi paginiamo.
 
 Output:
-- public/data/liguria_isobaths_detailed.geojson (linee, proprieta' "depth")
+- backend/data/bathymetry/liguria_isobaths_detailed.geojson (linee, proprieta'
+  "depth") — dato grezzo di riferimento, ~28MB: NON va in public/, il
+  frontend usa la versione semplificata public/data/liguria_isobaths.geojson
+  (build_composite_isobath.py/generate_isobaths.py)
 - backend/data/bathymetry/liguria_detailed_points.npz (nuvola di punti
   [lon, lat, depth] estratta dai vertici delle linee, usata da
   generate_hillshade.py per costruire un DEM reale al posto della griglia
@@ -32,7 +35,7 @@ import numpy as np
 from shapely.geometry import box, shape, mapping
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-GEOJSON_OUT = BACKEND_DIR.parent / "public" / "data" / "liguria_isobaths_detailed.geojson"
+GEOJSON_OUT = BACKEND_DIR / "data" / "bathymetry" / "liguria_isobaths_detailed.geojson"
 POINTS_OUT = BACKEND_DIR / "data" / "bathymetry" / "liguria_detailed_points.npz"
 
 WFS_URL = "https://geoservizi.regione.liguria.it/geoserver/M2112/wfs"

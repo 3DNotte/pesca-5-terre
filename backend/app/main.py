@@ -18,8 +18,8 @@ app.add_middleware(
     allow_origins=["http://localhost:5173"],
     # In piu' di "localhost": qualunque IP di rete locale (per aprire l'app dal
     # cellulare sulla stessa Wi-Fi/LAN del PC), e il dominio di produzione su
-    # Cloudflare Pages (dominio finale + eventuali URL di preview/branch).
-    allow_origin_regex=r"http://(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):5173|https://([a-z0-9-]+\.)*pesca5terre\.pages\.dev",
+    # Cloudflare Workers (pesca-5-terre.tuturial.workers.dev).
+    allow_origin_regex=r"http://(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):5173|https://pesca-5-terre\.tuturial\.workers\.dev",
     allow_methods=["GET"],
     allow_headers=["*"],
 )
