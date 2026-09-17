@@ -15,6 +15,8 @@ import { useWreckNotes } from '../hooks/useWreckNotes'
 import { anchorIconSvg } from '../utils/wreckIcon'
 import { reefIconSvg } from '../utils/reefIcon'
 import AddPoiForm from './AddPoiForm'
+import SessionFeedbackForm from './SessionFeedbackForm'
+import { useSessionFeedback } from '../hooks/useSessionFeedback'
 import {
   fetchScore,
   fetchSpecies,
@@ -132,6 +134,8 @@ export default function MapView() {
   const [ferryVisible, setFerryVisible] = useState(true)
   const [addPoiMode, setAddPoiMode] = useState(false)
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
+  const [sessionFeedbackOpen, setSessionFeedbackOpen] = useState(false)
+  const { addFeedback } = useSessionFeedback()
 
   const { depths: verifiedDepths, removeDepth } = useVerifiedDepths()
 
@@ -1028,6 +1032,17 @@ export default function MapView() {
         />
       )}
 
+      {sessionFeedbackOpen && (
+        <SessionFeedbackForm
+          speciesList={speciesList}
+          onCancel={() => setSessionFeedbackOpen(false)}
+          onSave={(data) => {
+            addFeedback(data)
+            setSessionFeedbackOpen(false)
+          }}
+        />
+      )}
+
       <MeteoWidget />
 
       <WizardPanel
@@ -1169,6 +1184,10 @@ export default function MapView() {
               onClick={() => setAddPoiMode((v) => !v)}
             >
               {addPoiMode ? 'Tocca la mappa…' : '+ Aggiungi punto'}
+            </button>
+
+            <button type="button" className="add-poi-btn" onClick={() => setSessionFeedbackOpen(true)}>
+              🎣 Come è andata oggi?
             </button>
           </>
         )}
