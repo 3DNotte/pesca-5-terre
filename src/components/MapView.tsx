@@ -127,7 +127,7 @@ export default function MapView() {
   const [liguriaIsobathsVisible, setLiguriaIsobathsVisible] = useState(true)
   const [hillshadeVisible, setHillshadeVisible] = useState(true)
   const [ampVisible, setAmpVisible] = useState(true)
-  const [poiVisible, setPoiVisible] = useState(true)
+  const [poiVisible] = useState(true)
   const [ferryVisible, setFerryVisible] = useState(true)
   const [addPoiMode, setAddPoiMode] = useState(false)
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
@@ -1165,19 +1165,10 @@ export default function MapView() {
             <label className="layer-toggle">
               <input
                 type="checkbox"
-                checked={poiVisible}
-                onChange={(e) => setPoiVisible(e.target.checked)}
-              />
-              Secche
-            </label>
-
-            <label className="layer-toggle">
-              <input
-                type="checkbox"
                 checked={realShoalsVisible}
                 onChange={(e) => setRealShoalsVisible(e.target.checked)}
               />
-              Secche rilevate (dati reali)
+              Secche
             </label>
             {realShoalsVisible && (
               <div className="score-legend">
