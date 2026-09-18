@@ -11,6 +11,7 @@ import { useVerifiedDepths } from '../hooks/useVerifiedDepths'
 import { useCatches } from '../hooks/useCatches'
 import { DEPTH_SOURCE_LABELS } from '../types/verifiedDepth'
 import type { WreckCollection, WreckFeature } from '../types/wreck'
+import type { RealShoalCollection, RealShoalFeature } from '../types/realShoal'
 import { useWreckNotes } from '../hooks/useWreckNotes'
 import { anchorIconSvg } from '../utils/wreckIcon'
 import { reefIconSvg } from '../utils/reefIcon'
@@ -146,6 +147,10 @@ export default function MapView() {
   const wreckMarkersRef = useRef<maplibregl.Marker[]>([])
   const { notes: wreckNotes, setNote: setWreckNote } = useWreckNotes()
 
+  const [realShoals, setRealShoals] = useState<RealShoalFeature[]>([])
+  const [realShoalsVisible, setRealShoalsVisible] = useState(true)
+  const realShoalMarkersRef = useRef<maplibregl.Marker[]>([])
+
   const [speciesList, setSpeciesList] = useState<SpeciesInfo[]>([])
   const [scoreResult, setScoreResult] = useState<ScoreResponse | null>(null)
   const [scoreVisible, setScoreVisible] = useState(true)
@@ -165,6 +170,10 @@ export default function MapView() {
       .then((r) => r.json())
       .then((data: WreckCollection) => setWrecks(data.features))
       .catch(() => setWrecks([]))
+    fetch(withCacheBust('/data/real_shoals.geojson'))
+      .then((r) => r.json())
+      .then((data: RealShoalCollection) => setRealShoals(data.features))
+      .catch(() => setRealShoals([]))
   }, [])
 
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -742,6 +751,48 @@ export default function MapView() {
     }
   }, [pois, poiVisible])
 
+  // --- Secche rilevate dai dati reali (isobate Regione Liguria sottocosta,
+  // EMODnet al largo) — distinte dai punti "Secche" che l'utente aggiunge a
+  // mano: qui nessun nome/nota personale, solo profondita' e fonte del dato. ---
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    for (const marker of realShoalMarkersRef.current) marker.remove()
+    realShoalMarkersRef.current = []
+
+    if (!realShoalsVisible) return
+
+    const SOURCE_LABEL: Record<RealShoalFeature['properties']['source'], string> = {
+      regione_liguria_isobate: 'Isobate Regione Liguria (rilievo 2012)',
+      emodnet: 'EMODnet Bathymetry (stima, ~115m/pixel)',
+    }
+
+    for (const shoal of realShoals) {
+      const [lon, lat] = shoal.geometry.coordinates
+      const el = document.createElement('div')
+      el.className = 'poi-marker poi-marker-reef poi-marker-reef-real'
+      el.innerHTML = reefIconSvg('#0e7c8a', 30)
+      el.title = `Secca rilevata a ${shoal.properties.depth_m}m`
+
+      const popupContainer = document.createElement('div')
+      popupContainer.className = 'poi-popup'
+      popupContainer.innerHTML = `
+        <strong>Secca rilevata (dati reali)</strong><br/>
+        Profondita': ${shoal.properties.depth_m} m<br/>
+        Fonte: ${SOURCE_LABEL[shoal.properties.source]}
+        <br/><span class="poi-popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
+        <br/>${navigateLinkHtml(lat, lon)}
+      `
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([lon, lat])
+        .setPopup(new maplibregl.Popup({ offset: 10 }).setDOMContent(popupContainer))
+        .addTo(map)
+      realShoalMarkersRef.current.push(marker)
+    }
+  }, [realShoals, realShoalsVisible])
+
   // --- Marker delle profondità verificate (dati reali inseriti dall'utente) ---
   useEffect(() => {
     const map = mapRef.current
@@ -1103,6 +1154,15 @@ export default function MapView() {
                 onChange={(e) => setPoiVisible(e.target.checked)}
               />
               Secche
+            </label>
+
+            <label className="layer-toggle">
+              <input
+                type="checkbox"
+                checked={realShoalsVisible}
+                onChange={(e) => setRealShoalsVisible(e.target.checked)}
+              />
+              Secche rilevate (dati reali)
             </label>
 
             <label className="layer-toggle">
