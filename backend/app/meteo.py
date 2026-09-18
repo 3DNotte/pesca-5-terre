@@ -1,9 +1,10 @@
 """Meteo/mare in tempo reale — sezione 5e del progetto.
 
 Vento e stato del mare da Open-Meteo (gratuito, nessuna chiave richiesta).
-Corrente superficiale (Copernicus Marine) non integrata in questo MVP:
-richiede registrazione e un client piu' pesante, rimandata a un secondo
-momento come gia' previsto dal progetto originale.
+Corrente superficiale: modello SMOC di Meteo-France via Open-Meteo (~8 km,
+oraria). Stima a griglia larga, NON una misura: sotto costa e' indicativa.
+Upgrade previsto: Copernicus Marine Med (~4 km, richiede account) e/o
+radar HF CNR-ISMAR se copre l'area.
 
 Il dato modula lo score morfologico, non lo sovrascrive: mare mosso da una
 direzione penalizza le celle ESPOSTE a quella direzione, non tutta l'area
@@ -47,7 +48,7 @@ def _fetch_hourly_cached(date_hour_bucket: str) -> dict:
     params = {
         "latitude": AREA_CENTER_LAT,
         "longitude": AREA_CENTER_LON,
-        "hourly": "wave_height,wave_direction,wave_period,sea_surface_temperature",
+        "hourly": "wave_height,wave_direction,wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction",
         "timezone": "Europe/Rome",
         "forecast_days": 5,
         "past_days": 1,
@@ -123,3 +124,29 @@ def meteo_score_grid(grid: MorphologyGrid, conditions: dict) -> np.ndarray:
 
     score = 1 - height_factor * exposure
     return np.clip(score, 0, 1).astype(np.float32)
+
+
+KMH_TO_KNOTS = 0.539957
+
+
+def get_current_series(dt: datetime, hours: int = 12) -> dict:
+    """Corrente superficiale (velocita' in nodi, direzione VERSO cui scorre)
+    per l'ora di dt e le successive `hours` ore. Stima da modello."""
+    try:
+        data = _fetch_hourly_cached(dt.strftime("%Y-%m-%d"))
+    except Exception as exc:
+        raise MeteoUnavailable(str(exc)) from exc
+    hourly = data["marine"]["hourly"]
+    idx = _nearest_hour_index(hourly["time"], dt)
+    if idx is None:
+        raise MeteoUnavailable(f"Nessuna previsione per {dt.isoformat()}")
+    points = []
+    for i in range(idx, min(idx + hours + 1, len(hourly["time"]))):
+        v = hourly["ocean_current_velocity"][i]
+        d = hourly["ocean_current_direction"][i]
+        if v is None or d is None:
+            continue
+        points.append({"time": hourly["time"][i], "speed_kn": round(v * KMH_TO_KNOTS, 2), "direction_deg": d})
+    if not points:
+        raise MeteoUnavailable("Dato corrente non disponibile")
+    return {"points": points, "source": "Open-Meteo Marine (modello SMOC, ~8 km) - stima, non misura"}

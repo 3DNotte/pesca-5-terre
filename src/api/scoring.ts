@@ -140,3 +140,23 @@ export async function fetchWizard(options: {
   if (!res.ok) throw new Error(`Errore backend: ${res.status}`)
   return res.json()
 }
+
+export interface CurrentPoint {
+  time: string
+  speed_kn: number
+  direction_deg: number // direzione VERSO cui scorre l'acqua
+}
+
+export interface CurrentInfo {
+  available: boolean
+  points: CurrentPoint[]
+  source?: string
+}
+
+export async function fetchCurrent(at?: Date): Promise<CurrentInfo> {
+  const params = new URLSearchParams()
+  if (at) params.set('at', toLocalIsoSeconds(at))
+  const res = await fetch(`${API_BASE}/api/current?${params}`)
+  if (!res.ok) throw new Error(`Errore backend: ${res.status}`)
+  return res.json()
+}
