@@ -767,19 +767,25 @@ export default function MapView() {
       regione_liguria_isobate: 'Isobate Regione Liguria (rilievo 2012)',
       emodnet: 'EMODnet Bathymetry (stima, ~115m/pixel)',
     }
+    // Nessuna delle secche rilevate emerge letteralmente dall'acqua (la piu'
+    // bassa e' a 3m): "affiorante" qui e' usato in senso pratico, di rischio
+    // reale per lo scafo di un gozzo, non di roccia visibile fuori dall'acqua.
+    const SHALLOW_HAZARD_DEPTH_M = 5
 
     for (const shoal of realShoals) {
       const [lon, lat] = shoal.geometry.coordinates
+      const isShallowHazard = shoal.properties.depth_m <= SHALLOW_HAZARD_DEPTH_M
+      const color = isShallowHazard ? '#e8620c' : '#c62828'
       const el = document.createElement('div')
       el.className = 'poi-marker poi-marker-reef poi-marker-reef-real'
-      el.innerHTML = reefIconSvg('#0e7c8a', 30)
-      el.title = `Secca rilevata a ${shoal.properties.depth_m}m`
+      el.innerHTML = reefIconSvg(color, 30)
+      el.title = `Secca rilevata a ${shoal.properties.depth_m}m${isShallowHazard ? ' — molto bassa' : ''}`
 
       const popupContainer = document.createElement('div')
       popupContainer.className = 'poi-popup'
       popupContainer.innerHTML = `
         <strong>Secca rilevata (dati reali)</strong><br/>
-        Profondita': ${shoal.properties.depth_m} m<br/>
+        Profondita': ${shoal.properties.depth_m} m ${isShallowHazard ? '⚠️ molto bassa' : ''}<br/>
         Fonte: ${SOURCE_LABEL[shoal.properties.source]}
         <br/><span class="poi-popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
         <br/>${navigateLinkHtml(lat, lon)}
@@ -1164,6 +1170,12 @@ export default function MapView() {
               />
               Secche rilevate (dati reali)
             </label>
+            {realShoalsVisible && (
+              <div className="score-legend">
+                <span style={{ background: '#e8620c' }} /> ≤5m, rischio scafo
+                <span style={{ background: '#c62828' }} /> più profonda
+              </div>
+            )}
 
             <label className="layer-toggle">
               <input
