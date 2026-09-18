@@ -767,25 +767,34 @@ export default function MapView() {
       regione_liguria_isobate: 'Isobate Regione Liguria (rilievo 2012)',
       emodnet: 'EMODnet Bathymetry (stima, ~115m/pixel)',
     }
-    // Nessuna delle secche rilevate emerge letteralmente dall'acqua (la piu'
-    // bassa e' a 3m): "affiorante" qui e' usato in senso pratico, di rischio
-    // reale per lo scafo di un gozzo, non di roccia visibile fuori dall'acqua.
-    const SHALLOW_HAZARD_DEPTH_M = 5
+    // Su indicazione diretta dell'utente (esperienza reale in barca): le
+    // secche piu' basse rilevate qui sono scogli semi-affioranti, i piu'
+    // interessanti per la pesca — non solo un rischio per lo scafo. Colore
+    // a gradiente continuo, non piu' una soglia netta: verde (bassa
+    // priorita') sfuma a rosso (alta priorita') mano a mano che la secca e'
+    // piu' bassa. Oltre SHOAL_INTEREST_MAX_DEPTH_M l'interesse resta al
+    // minimo (verde pieno), non ha senso continuare a scalare all'infinito.
+    const SHOAL_INTEREST_MAX_DEPTH_M = 60
+    const colorForShoalDepth = (depthM: number): string => {
+      const t = Math.min(Math.max(depthM / SHOAL_INTEREST_MAX_DEPTH_M, 0), 1) // 0=affiorante, 1=profonda
+      const lerp = (a: number, b: number) => Math.round(a + (b - a) * t)
+      // rosso (198,40,40) a t=0 -> verde (46,125,50) a t=1
+      return `rgb(${lerp(198, 46)}, ${lerp(40, 125)}, ${lerp(40, 50)})`
+    }
 
     for (const shoal of realShoals) {
       const [lon, lat] = shoal.geometry.coordinates
-      const isShallowHazard = shoal.properties.depth_m <= SHALLOW_HAZARD_DEPTH_M
-      const color = isShallowHazard ? '#e8620c' : '#c62828'
+      const color = colorForShoalDepth(shoal.properties.depth_m)
       const el = document.createElement('div')
       el.className = 'poi-marker poi-marker-reef poi-marker-reef-real'
       el.innerHTML = reefIconSvg(color, 30)
-      el.title = `Secca rilevata a ${shoal.properties.depth_m}m${isShallowHazard ? ' — molto bassa' : ''}`
+      el.title = `Secca rilevata a ${shoal.properties.depth_m}m`
 
       const popupContainer = document.createElement('div')
       popupContainer.className = 'poi-popup'
       popupContainer.innerHTML = `
         <strong>Secca rilevata (dati reali)</strong><br/>
-        Profondita': ${shoal.properties.depth_m} m ${isShallowHazard ? '⚠️ molto bassa' : ''}<br/>
+        Profondita': ${shoal.properties.depth_m} m<br/>
         Fonte: ${SOURCE_LABEL[shoal.properties.source]}
         <br/><span class="poi-popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
         <br/>${navigateLinkHtml(lat, lon)}
@@ -1172,8 +1181,9 @@ export default function MapView() {
             </label>
             {realShoalsVisible && (
               <div className="score-legend">
-                <span style={{ background: '#e8620c' }} /> ≤5m, rischio scafo
-                <span style={{ background: '#c62828' }} /> più profonda
+                <span style={{ background: 'rgb(198,40,40)' }} /> molto bassa, top per la pesca
+                <span style={{ background: 'rgb(122,82,45)' }} /> intermedia
+                <span style={{ background: 'rgb(46,125,50)' }} /> più profonda, meno interessante
               </div>
             )}
 
