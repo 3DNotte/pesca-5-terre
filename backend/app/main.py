@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import WEIGHTS
-from .meteo import MeteoUnavailable, get_conditions, get_current_series
+from .meteo import MeteoUnavailable, get_conditions, get_sea_details
 from .morphology import MorphologyGrid, load_morphology
 from .scoring import classify_score, compute_score_grid
 from .species import SpeciesProfile, load_species_profiles
@@ -312,14 +312,14 @@ def meteo(at: str | None = Query(None, description="ISO datetime, default ora co
         return {"available": False, "conditions": None, "error": str(exc)}
 
 
-@app.get("/api/current")
-def current(at: str | None = Query(None, description="ISO datetime, default ora corrente")):
-    """Corrente superficiale stimata: ora scelta + prossime 12 ore."""
+@app.get("/api/sea-details")
+def sea_details(at: str | None = Query(None, description="ISO datetime, default ora corrente")):
+    """Corrente e marea (stime da modello) per la tendina della barra meteo."""
     dt = datetime.fromisoformat(at) if at else datetime.now()
     try:
-        return {"available": True, **get_current_series(dt)}
+        return {"available": True, **get_sea_details(dt)}
     except MeteoUnavailable as exc:
-        return {"available": False, "points": [], "error": str(exc)}
+        return {"available": False, "current": [], "tide": None, "error": str(exc)}
 
 
 @app.get("/api/health")

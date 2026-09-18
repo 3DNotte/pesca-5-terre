@@ -147,16 +147,26 @@ export interface CurrentPoint {
   direction_deg: number // direzione VERSO cui scorre l'acqua
 }
 
-export interface CurrentInfo {
+export interface TidePoint {
+  time: string
+  level_cm: number
+}
+
+export interface TideExtremum extends TidePoint {
+  type: 'alta' | 'bassa'
+}
+
+export interface SeaDetails {
   available: boolean
-  points: CurrentPoint[]
+  current: CurrentPoint[]
+  tide: { points: TidePoint[]; trend: string | null; extrema: TideExtremum[] } | null
   source?: string
 }
 
-export async function fetchCurrent(at?: Date): Promise<CurrentInfo> {
+export async function fetchSeaDetails(at?: Date): Promise<SeaDetails> {
   const params = new URLSearchParams()
   if (at) params.set('at', toLocalIsoSeconds(at))
-  const res = await fetch(`${API_BASE}/api/current?${params}`)
+  const res = await fetch(`${API_BASE}/api/sea-details?${params}`)
   if (!res.ok) throw new Error(`Errore backend: ${res.status}`)
   return res.json()
 }

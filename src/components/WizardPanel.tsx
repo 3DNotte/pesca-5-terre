@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { SpeciesInfo, WizardResponse } from '../api/scoring'
 import { defaultTimeWindow } from '../utils/sunTimes'
-import CurrentWidget from './CurrentWidget'
 import './WizardPanel.css'
 
 const BAIT_OPTIONS = ['Sugherello', 'Aguglia', 'Occhiata', 'Cefalopodi', 'Altro vivo', 'Artificiale']
@@ -116,7 +115,6 @@ export default function WizardPanel({
             ))}
           </div>
         )}
-        <CurrentWidget at={start} />
       </div>
 
       <div className="wizard-question">

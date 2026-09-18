@@ -48,7 +48,7 @@ def _fetch_hourly_cached(date_hour_bucket: str) -> dict:
     params = {
         "latitude": AREA_CENTER_LAT,
         "longitude": AREA_CENTER_LON,
-        "hourly": "wave_height,wave_direction,wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction",
+        "hourly": "wave_height,wave_direction,wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction,sea_level_height_msl",
         "timezone": "Europe/Rome",
         "forecast_days": 5,
         "past_days": 1,
@@ -127,11 +127,40 @@ def meteo_score_grid(grid: MorphologyGrid, conditions: dict) -> np.ndarray:
 
 
 KMH_TO_KNOTS = 0.539957
+MIN_TIDE_SWING_CM = 5
 
 
-def get_current_series(dt: datetime, hours: int = 12) -> dict:
-    """Corrente superficiale (velocita' in nodi, direzione VERSO cui scorre)
-    per l'ora di dt e le successive `hours` ore. Stima da modello."""
+def _tide_extrema(times: list[str], levels: list, start: int, end: int) -> list[dict]:
+    """Alta/bassa marea nella finestra [start, end). Il livello del modello ha
+    piccole oscillazioni che non sono maree: tengo solo gli estremi che
+    distano almeno MIN_TIDE_SWING_CM dall'estremo precedente (alternati)."""
+    raw = []
+    for i in range(max(start, 1), min(end, len(levels) - 1)):
+        a, b, c = levels[i - 1], levels[i], levels[i + 1]
+        if None in (a, b, c):
+            continue
+        if b > a and b >= c:
+            raw.append({"time": times[i], "type": "alta", "level_cm": round(b * 100)})
+        elif b < a and b <= c:
+            raw.append({"time": times[i], "type": "bassa", "level_cm": round(b * 100)})
+    out: list[dict] = []
+    for e in raw:
+        if out and out[-1]["type"] == e["type"]:
+            # stesso tipo consecutivo: tengo il piu' estremo
+            better = e["level_cm"] > out[-1]["level_cm"] if e["type"] == "alta" else e["level_cm"] < out[-1]["level_cm"]
+            if better:
+                out[-1] = e
+        elif out and abs(e["level_cm"] - out[-1]["level_cm"]) < MIN_TIDE_SWING_CM:
+            continue  # oscillazione trascurabile, non e' un'inversione di marea
+        else:
+            out.append(e)
+    return out
+
+
+def get_sea_details(dt: datetime, hours: int = 12, tide_hours: int = 30) -> dict:
+    """Corrente superficiale (nodi, direzione VERSO cui scorre) per le prossime
+    `hours` ore + marea (livello del mare in cm rispetto alla media, comprende
+    la marea astronomica) per `tide_hours` ore. Stime da modello, non misure."""
     try:
         data = _fetch_hourly_cached(dt.strftime("%Y-%m-%d"))
     except Exception as exc:
@@ -140,13 +169,34 @@ def get_current_series(dt: datetime, hours: int = 12) -> dict:
     idx = _nearest_hour_index(hourly["time"], dt)
     if idx is None:
         raise MeteoUnavailable(f"Nessuna previsione per {dt.isoformat()}")
-    points = []
+
+    current = []
     for i in range(idx, min(idx + hours + 1, len(hourly["time"]))):
         v = hourly["ocean_current_velocity"][i]
         d = hourly["ocean_current_direction"][i]
         if v is None or d is None:
             continue
-        points.append({"time": hourly["time"][i], "speed_kn": round(v * KMH_TO_KNOTS, 2), "direction_deg": d})
-    if not points:
-        raise MeteoUnavailable("Dato corrente non disponibile")
-    return {"points": points, "source": "Open-Meteo Marine (modello SMOC, ~8 km) - stima, non misura"}
+        current.append({"time": hourly["time"][i], "speed_kn": round(v * KMH_TO_KNOTS, 2), "direction_deg": d})
+
+    raw_levels = hourly["sea_level_height_msl"]
+    # Il modello ha un offset costante (circa -50 cm sul Mar Ligure, dovuto al
+    # riferimento verticale): lo tolgo rispetto alla media dei giorni disponibili,
+    # cosi' il valore indica "sopra/sotto il livello medio del periodo".
+    valid = [v for v in raw_levels if v is not None]
+    mean_level = sum(valid) / len(valid) if valid else 0.0
+    levels = [None if v is None else v - mean_level for v in raw_levels]
+    tide = []
+    for i in range(idx, min(idx + tide_hours + 1, len(levels))):
+        if levels[i] is not None:
+            tide.append({"time": hourly["time"][i], "level_cm": round(levels[i] * 100)})
+    trend = None
+    if idx + 1 < len(levels) and levels[idx] is not None and levels[idx + 1] is not None:
+        diff = levels[idx + 1] - levels[idx]
+        trend = "in salita" if diff > 0.002 else "in discesa" if diff < -0.002 else "stazionaria"
+    extrema = _tide_extrema(hourly["time"], levels, idx + 1, idx + tide_hours)
+
+    return {
+        "current": current,
+        "tide": {"points": tide, "trend": trend, "extrema": extrema},
+        "source": "Open-Meteo Marine (modello SMOC Meteo-France, ~8 km) - stime, non misure",
+    }

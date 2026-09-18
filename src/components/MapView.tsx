@@ -16,7 +16,6 @@ import { useWreckNotes } from '../hooks/useWreckNotes'
 import { anchorIconSvg } from '../utils/wreckIcon'
 import { reefIconSvg } from '../utils/reefIcon'
 import AddPoiForm from './AddPoiForm'
-import CurrentWidget from './CurrentWidget'
 import SessionFeedbackForm from './SessionFeedbackForm'
 import { useSessionFeedback } from '../hooks/useSessionFeedback'
 import {
@@ -129,7 +128,6 @@ export default function MapView() {
   const [hillshadeVisible, setHillshadeVisible] = useState(true)
   const [ampVisible, setAmpVisible] = useState(true)
   const [poiVisible] = useState(true)
-  const [currentVisible, setCurrentVisible] = useState(false)
   const [ferryVisible, setFerryVisible] = useState(true)
   const [addPoiMode, setAddPoiMode] = useState(false)
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
@@ -1040,12 +1038,6 @@ export default function MapView() {
     <div className="map-shell">
       <div ref={containerRef} className="map-container" />
 
-      {currentVisible && (
-        <div className="map-current-card current-widget-wrap">
-          <CurrentWidget />
-        </div>
-      )}
-
       {pendingCoords && (
         <AddPoiForm
           coords={pendingCoords}
@@ -1163,15 +1155,6 @@ export default function MapView() {
                 onChange={(e) => setRealShoalsVisible(e.target.checked)}
               />
               Secche
-            </label>
-
-            <label className="layer-toggle">
-              <input
-                type="checkbox"
-                checked={currentVisible}
-                onChange={(e) => setCurrentVisible(e.target.checked)}
-              />
-              Correnti
             </label>
 
             <label className="layer-toggle">
