@@ -1,13 +1,21 @@
 """Motore di scoring — sezione 6 del progetto.
 
-score_cella(specie, t) =
-    w1 * score_morfologia(cella) * affinita_struttura(specie)
-  + w2 * score_stagionale(specie, mese(t))
-  + w3 * score_orario(specie, ora(t))
-  + w4 * (1 - pressione_traffico(cella, t)) * sensibilita_disturbo(specie)
-  + w5 * score_meteo_mare(cella, t)   # placeholder neutro finche' Step 5 non e' integrato
+score_cella(specie, t) = 100 * SPAZIALE(cella, specie) * (0.55 + 0.45 * TEMPO(cella, t))
 
-La regola chiave (sezione 6): quando pressione alta + specie sensibile, il
+  SPAZIALE = morfologia (pendenza/secche) * affinita_struttura * fit di
+             profondita', piu' un termine "sotto costa" (fascia entro ~600 m
+             dalla riva, dove la costa rocciosa cade a picco) e un piccolo
+             favore per l'arco Punta Mesco - Riomaggiore.
+  TEMPO    = media pesata (w2..w5) di stagionale, orario, traffico, meteo/mare.
+
+Perche' moltiplicativo e non una somma pesata (versione precedente): stagione,
+ora e meteo sono UGUALI su tutta la mappa, e sommati valevano ~65% del
+punteggio. Ogni cella partiva da ~50/100 e con orari favorevoli l'intero
+mare superava la soglia "rosso". Cosi' invece il POSTO decide dove e' il
+rosso e il momento lo alza o lo abbassa (fino a -45%) senza uniformarlo.
+
+Il peso w1 non entra piu' come somma: il contributo del luogo e' il fattore
+principale. La regola chiave (sezione 6): quando pressione alta + specie sensibile, il
 punteggio migliore si sposta verso celle piu' al largo o schermate, non si
 abbassa uniformemente. Questo emerge naturalmente dal termine w4, che varia
 per cella in base alla pressione locale — non serve un caso speciale.
@@ -16,6 +24,7 @@ per cella in base alla pressione locale — non serve un caso speciale.
 from datetime import datetime
 
 import numpy as np
+from scipy.ndimage import maximum_filter
 
 from .config import WEIGHTS
 from .meteo import MeteoUnavailable, get_conditions, meteo_score_grid
@@ -41,16 +50,59 @@ def depth_fit_score(elevation: np.ndarray, depth_range_m: tuple[float, float] | 
     return fit.astype(np.float32)
 
 
+COAST_BAND_M = 600  # fascia "sotto costa": qui il fondale roccioso scende subito
+MESCO_LON, RIOMAGGIORE_LON = 9.645, 9.745  # arco favorito (esperienza diretta dell'utente)
+ZONE_BOOST_MAX = 0.15  # +15% al massimo, sfuma ai bordi: un favore, non un dogma
+ZONE_COAST_REACH_M = 1500
+
+
+def coastal_depth_fit(grid: MorphologyGrid, depth_range_m: tuple[float, float] | None) -> np.ndarray:
+    """Fit di profondita' per la fascia sotto costa. La griglia EMODnet e'
+    a ~115 m/pixel: il pixel piu' vicino a riva mescola terra e mare e dice
+    "2 m" anche dove, su questa costa che cade a picco, a 100-200 m dalla riva
+    ci sono 20-30 m. Uso quindi la profondita' massima nell'intorno 3x3 (~115 m
+    di raggio), cioe' quella davvero raggiungibile subito fuori dalla riva."""
+    depth = np.where(grid.sea_mask, -grid.elevation, 0.0)
+    reachable = maximum_filter(depth, size=3, mode="nearest")
+    return depth_fit_score(-reachable, depth_range_m)
+
+
+def coast_term(grid: MorphologyGrid, depth_fit: np.ndarray) -> np.ndarray:
+    """0..1: massimo a riva e cala fino a 0 a COAST_BAND_M. Premia il
+    sottocosta (3-40 m) dove c'e' anche pendenza o rilievo; e' pesato dal
+    fit di profondita' della specie."""
+    near = np.clip(1 - grid.distance_to_coast_m / COAST_BAND_M, 0, 1)
+    structure = np.clip(0.5 + 0.5 * np.maximum(grid.slope_score, grid.shoal_score), 0, 1)
+    return (near * structure * depth_fit).astype(np.float32)
+
+
+def zone_boost(grid: MorphologyGrid) -> np.ndarray:
+    """1.0..(1+ZONE_BOOST_MAX): arco costiero Punta Mesco - Riomaggiore."""
+    cols = np.arange(grid.shape[1])
+    lon = grid.transform.c + (cols + 0.5) * grid.transform.a
+    ramp = 0.1  # gradi: sfumatura ai due estremi
+    lon_w = np.clip((lon - (MESCO_LON - ramp / 2)) / ramp, 0, 1) * np.clip(((RIOMAGGIORE_LON + ramp / 2) - lon) / ramp, 0, 1)
+    reach = np.exp(-grid.distance_to_coast_m / ZONE_COAST_REACH_M)
+    return (1 + ZONE_BOOST_MAX * lon_w[None, :] * reach).astype(np.float32)
+
+
 def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | None = None) -> dict:
     grid: MorphologyGrid = load_morphology()
     w = weights if weights is not None else WEIGHTS
 
-    # La struttura conta solo se e' alla profondita' in cui la specie vive
-    # davvero (sezione "Il problema reale" — prima una secca interessante a
-    # 100m poteva vincere anche per specie sottocosta come il serra).
-    morfologia = (
-        morphology_score(grid) * species.structure_affinity * depth_fit_score(grid.elevation, species.depth_range_m)
-    )
+    depth_fit = depth_fit_score(grid.elevation, species.depth_range_m)
+    morf_raw = morphology_score(grid)  # 0..1, p99 ~0.4: si normalizza sotto
+    morf_n = np.clip(morf_raw / 0.45, 0, 1) ** 0.8
+
+    if species.depth_range_m is None:
+        # Pelagici: seguono scarpate/fronti piu' che il fondo sotto costa;
+        # base moderata, il rilievo la modula (mai zero: sono mobili).
+        spaziale = 0.08 + 0.60 * morf_n**1.5
+    else:
+        aff = 0.6 + 0.4 * species.structure_affinity  # ammorbidita: l'affinita' non deve annullare il posto
+        spaziale = np.clip(0.60 * morf_n * aff * depth_fit + 0.65 * coast_term(grid, coastal_depth_fit(grid, species.depth_range_m)) * aff, 0, 1)
+    morfologia = np.clip(spaziale * zone_boost(grid), 0, 1)
+
     stagionale = np.full(grid.shape, species.seasonal_score(dt.month), dtype=np.float32)
     orario = np.full(grid.shape, species.hourly_score(dt.hour), dtype=np.float32)
     pressione = traffic_pressure(grid, dt)
@@ -67,15 +119,15 @@ def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | No
         meteo = np.full(grid.shape, 0.5, dtype=np.float32)
         meteo_available = False
 
-    total_weight = sum(w.values())
-    raw = (
-        w["w1_morfologia"] * morfologia
-        + w["w2_stagionale"] * stagionale
-        + w["w3_orario"] * orario
-        + w["w4_traffico"] * traffico_term
-        + w["w5_meteo_mare"] * meteo
-    )
-    score_0_100 = np.clip((raw / max(total_weight, 1e-6)) * 100, 0, 100)
+    time_weights = {k: w[k] for k in ("w2_stagionale", "w3_orario", "w4_traffico", "w5_meteo_mare")}
+    total_weight = sum(time_weights.values())
+    tempo = (
+        time_weights["w2_stagionale"] * stagionale
+        + time_weights["w3_orario"] * orario
+        + time_weights["w4_traffico"] * traffico_term
+        + time_weights["w5_meteo_mare"] * meteo
+    ) / max(total_weight, 1e-6)
+    score_0_100 = np.clip(100 * morfologia * (0.55 + 0.45 * tempo), 0, 100)
 
     # Terra: nessun punteggio (non e' mare).
     score_0_100 = np.where(grid.sea_mask, score_0_100, np.nan)
@@ -100,13 +152,14 @@ def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | No
 def classify_score(value: float) -> str:
     # Soglie calibrate su feedback diretto dell'utente (esperienza reale in
     # barca sulla costiera Punta Mesco-Punta di Montenero): erano piu' severe
-    # (70/50/30). Qui cambia solo l'ETICHETTA associata a un punteggio, non il
+    # (70/50/30), poi ritarate 55/40/25 quando la formula e' passata da somma a prodotto
+    # (il posto decide, il momento modula): il rosso e' ora selettivo, ~1-3% del mare. Qui cambia solo l'ETICHETTA associata a un punteggio, non il
     # punteggio numerico stesso, che resta calcolato come prima.
     if np.isnan(value):
         return "n/d"
-    if value >= 62:
+    if value >= 55:
         return "molto probabile"
-    if value >= 42:
+    if value >= 40:
         return "buono"
     if value >= 25:
         return "da provare"

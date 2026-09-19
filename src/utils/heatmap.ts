@@ -2,13 +2,13 @@ import type { ScoreResponse } from '../api/scoring'
 
 /** Fasce colore coerenti con la classificazione del backend (classify_score). */
 function colorForScore(score: number): [number, number, number, number] {
-  // Stesse soglie di classify_score (backend, 62/42/25 dopo calibrazione su
-  // feedback utente): qui cambia solo la resa grafica, non il punteggio.
+  // Stesse soglie di classify_score (backend, 55/40/25 dopo la riscrittura della formula
+  // (il rosso e' selettivo)): qui cambia solo la resa grafica, non il punteggio.
   // Zona "molto probabile" piu' satura/opaca delle altre cosi' risalta a
   // colpo d'occhio invece di essere un rosso tenue come le fasce sotto — la
   // sostanza del dato non cambia.
-  if (score >= 62) return [211, 24, 24, 215] // molto probabile — rosso vivo, ben rimarcato
-  if (score >= 42) return [239, 108, 0, 130] // buono — arancio
+  if (score >= 55) return [211, 24, 24, 215] // molto probabile — rosso vivo, ben rimarcato
+  if (score >= 40) return [239, 108, 0, 130] // buono — arancio
   if (score >= 25) return [251, 192, 45, 95] // da provare — giallo tenue
   return [0, 0, 0, 0] // sconsigliato — trasparente, non copre la mappa
 }
