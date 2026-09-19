@@ -1,7 +1,11 @@
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-BATHYMETRY_PATH = BASE_DIR / "data" / "bathymetry" / "amp_bathy.tif"
+# Griglia fine (~38 m, dati reali Regione Liguria sotto costa + EMODnet al
+# largo) se costruita con scripts/build_fine_bathymetry.py; altrimenti EMODnet
+# grezza (~115 m), che sotto costa e' troppo grossolana.
+_FINE_BATHY = BASE_DIR / "data" / "bathymetry" / "amp_bathy_fine.tif"
+BATHYMETRY_PATH = _FINE_BATHY if _FINE_BATHY.exists() else BASE_DIR / "data" / "bathymetry" / "amp_bathy.tif"
 SPECIES_PROFILES_PATH = BASE_DIR / "data" / "species_profiles.json"
 FERRY_SCHEDULE_PATH = BASE_DIR / "data" / "ferry_schedule.json"
 

@@ -86,13 +86,19 @@ def zone_boost(grid: MorphologyGrid) -> np.ndarray:
     return (1 + ZONE_BOOST_MAX * lon_w[None, :] * reach).astype(np.float32)
 
 
-def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | None = None) -> dict:
-    grid: MorphologyGrid = load_morphology()
-    w = weights if weights is not None else WEIGHTS
+_SPATIAL_CACHE: dict[str, np.ndarray] = {}
 
+
+def _spatial_term(species: SpeciesProfile) -> np.ndarray:
+    """Termine spaziale (0..1) per specie: non dipende dall'orario, quindi si
+    calcola una volta sola (il wizard valuta molte specie x orari)."""
+    cached = _SPATIAL_CACHE.get(species.key)
+    if cached is not None:
+        return cached
+    grid = load_morphology()
     depth_fit = depth_fit_score(grid.elevation, species.depth_range_m)
-    morf_raw = morphology_score(grid)  # 0..1, p99 ~0.4: si normalizza sotto
-    morf_n = np.clip(morf_raw / 0.45, 0, 1) ** 0.8
+    morf_raw = morphology_score(grid)  # 0..1, si normalizza sotto
+    morf_n = np.clip(morf_raw / 0.70, 0, 1) ** 0.8
 
     if species.depth_range_m is None:
         # Pelagici: seguono scarpate/fronti piu' che il fondo sotto costa;
@@ -100,17 +106,45 @@ def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | No
         spaziale = 0.08 + 0.60 * morf_n**1.5
     else:
         aff = 0.6 + 0.4 * species.structure_affinity  # ammorbidita: l'affinita' non deve annullare il posto
-        spaziale = np.clip(0.60 * morf_n * aff * depth_fit + 0.65 * coast_term(grid, coastal_depth_fit(grid, species.depth_range_m)) * aff, 0, 1)
-    morfologia = np.clip(spaziale * zone_boost(grid), 0, 1)
+        spaziale = np.clip(
+            0.60 * morf_n * aff * depth_fit + 0.40 * coast_term(grid, coastal_depth_fit(grid, species.depth_range_m)) * aff,
+            0,
+            1,
+        )
+    result = np.clip(spaziale * zone_boost(grid), 0, 1).astype(np.float32)
+    _SPATIAL_CACHE[species.key] = result
+    return result
+
+
+_SHARED_CACHE: dict[tuple[str, str], np.ndarray] = {}
+
+
+def _shared(kind: str, dt: datetime, compute) -> np.ndarray:
+    """Traffico e meteo dipendono dall'ora ma NON dalla specie: nel wizard
+    (tutte le specie x piu' orari) si riusano invece di ricalcolarli."""
+    key = (kind, dt.strftime("%Y%m%d%H%M"))
+    hit = _SHARED_CACHE.get(key)
+    if hit is None:
+        if len(_SHARED_CACHE) > 64:
+            _SHARED_CACHE.clear()
+        hit = _SHARED_CACHE[key] = compute()
+    return hit
+
+
+def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | None = None) -> dict:
+    grid: MorphologyGrid = load_morphology()
+    w = weights if weights is not None else WEIGHTS
+
+    morfologia = _spatial_term(species)
 
     stagionale = np.full(grid.shape, species.seasonal_score(dt.month), dtype=np.float32)
     orario = np.full(grid.shape, species.hourly_score(dt.hour), dtype=np.float32)
-    pressione = traffic_pressure(grid, dt)
+    pressione = _shared("traffic", dt, lambda: traffic_pressure(grid, dt))
     traffico_term = (1 - pressione) * species.disturbance_sensitivity
 
     try:
         conditions = get_conditions(dt)
-        meteo = meteo_score_grid(grid, conditions)
+        meteo = _shared("meteo", dt, lambda: meteo_score_grid(grid, conditions))
         meteo_available = True
     except MeteoUnavailable:
         # Meteo non raggiungibile o fuori dalla finestra di previsione: score

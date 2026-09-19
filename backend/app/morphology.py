@@ -10,7 +10,7 @@ from functools import lru_cache
 
 import numpy as np
 import rasterio
-from scipy.ndimage import distance_transform_edt, minimum_filter, uniform_filter
+from scipy.ndimage import distance_transform_edt, uniform_filter
 
 from .config import BATHYMETRY_PATH, DEPTH_FULL_RELEVANCE_M, DEPTH_ZERO_RELEVANCE_M
 
@@ -85,13 +85,15 @@ def load_morphology() -> MorphologyGrid:
 
     # Secche: punti dove il fondale e' PIU' ALTO (meno profondo) del suo
     # intorno immediato, pur restando in mare — minimo locale di profondita'.
-    local_min_depth = minimum_filter(np.where(sea_mask, elevation, np.nan), size=5, mode="nearest")
-    neighborhood_avg = uniform_filter(np.where(sea_mask, elevation, 0.0), size=9)
+    # Intorno di ~1 km espresso in metri (non in pixel): la griglia puo'
+    # essere a 115 m (EMODnet) o ~38 m (fine), il significato deve restare lo stesso.
+    px_m = (px_x_m + px_y_m) / 2
+    neighborhood_px = max(int(round(1035 / px_m)) // 2 * 2 + 1, 3)
+    neighborhood_avg = uniform_filter(np.where(sea_mask, elevation, 0.0), size=neighborhood_px)
     shoal_raw = np.where(sea_mask, neighborhood_avg - elevation, 0.0)  # >0 se piu' alto della media locale
     shoal_raw = np.clip(shoal_raw, 0, None)
     p95_shoal = np.percentile(shoal_raw[sea_mask], 95) if sea_mask.any() else 1.0
     shoal_score = np.clip(shoal_raw / max(p95_shoal, 1e-6), 0, 1)
-    del local_min_depth  # usato solo concettualmente per la soglia sopra
 
     # Distanza dalla costa: transform distance su maschera terra/mare.
     dist_px = distance_transform_edt(sea_mask)

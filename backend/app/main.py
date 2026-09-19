@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from .config import WEIGHTS
 from .meteo import MeteoUnavailable, get_conditions, get_sea_details
@@ -13,6 +14,8 @@ from .traffic import ferry_passages_in_window
 
 app = FastAPI(title="Pesca 5 Terre — motore di scoring")
 
+# La griglia fine e' grande (centinaia di migliaia di celle, quasi tutte uguali): gzip la riduce di ~10x.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -23,6 +26,17 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def _warm_caches() -> None:
+    """Precalcola il termine spaziale di ogni specie all'avvio: cosi' la prima
+    richiesta del wizard non paga il calcolo (su Render free e' gia' lento il risveglio)."""
+    from .scoring import _spatial_term
+
+    load_morphology()
+    for profile in load_species_profiles().values():
+        _spatial_term(profile)
+
 
 FERRY_STOP_LABELS_IT = {
     "levanto": "Levanto",
@@ -42,16 +56,26 @@ def _grid_bounds(grid: MorphologyGrid) -> list[float]:
     ]
 
 
+TOP_SPOT_MIN_SEPARATION_M = 300  # con la griglia fine i migliori pixel sono adiacenti: uno spot per zona
+
+
 def _top_spots(score: np.ndarray, grid: MorphologyGrid, top_n: int) -> list[dict]:
     finite_mask = np.isfinite(score)
-    flat_idx = np.argsort(np.where(finite_mask, score, -np.inf).ravel())[::-1][:top_n]
-    rows, cols = np.unravel_index(flat_idx, score.shape)
-    spots = []
+    order = np.argsort(np.where(finite_mask, score, -np.inf).ravel())[::-1][: top_n * 400]
+    rows, cols = np.unravel_index(order, score.shape)
+    m_per_deg_lat = 111_320.0
+    m_per_deg_lon = 111_320.0 * np.cos(np.radians(44.13))
+    spots: list[dict] = []
     for r, c in zip(rows, cols):
         value = float(score[r, c])
         if not np.isfinite(value):
             continue
         lon, lat = grid.transform * (c + 0.5, r + 0.5)
+        if any(
+            np.hypot((lon - s["lon"]) * m_per_deg_lon, (lat - s["lat"]) * m_per_deg_lat) < TOP_SPOT_MIN_SEPARATION_M
+            for s in spots
+        ):
+            continue
         spots.append(
             {
                 "lon": lon,
@@ -61,6 +85,8 @@ def _top_spots(score: np.ndarray, grid: MorphologyGrid, top_n: int) -> list[dict
                 "depth_m": round(float(-grid.elevation[r, c]), 1),
             }
         )
+        if len(spots) >= top_n:
+            break
     return spots
 
 
@@ -70,7 +96,7 @@ def _grid_payload(score: np.ndarray, grid: MorphologyGrid) -> dict:
         "width": grid.shape[1],
         "height": grid.shape[0],
         "bounds": _grid_bounds(grid),
-        "values": np.where(finite_mask, np.round(score, 1), None).tolist(),
+        "values": np.where(finite_mask, np.round(score), None).tolist(),
     }
 
 
