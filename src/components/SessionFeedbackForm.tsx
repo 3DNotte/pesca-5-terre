@@ -134,12 +134,12 @@ export default function SessionFeedbackForm({
               if (pickedSectors.length === 0) onPickZone()
             }}
           >
-            Altrove
+            🖍️ Cerchia sulla mappa
           </button>
         </div>
-        {where === 'other' && (
+        {where === 'other' && pickedSectors.length > 0 && (
           <button type="button" style={{ marginTop: 6 }} onClick={onPickZone}>
-            🖍️ {pickedSectors.length > 0 ? `${pickedSectors.length} settori — modifica` : 'Cerchia la zona sulla mappa'}
+            {pickedSectors.length} settori selezionati — modifica
           </button>
         )}
         {recommendedSpots.length === 0 && (
