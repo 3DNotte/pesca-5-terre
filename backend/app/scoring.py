@@ -49,7 +49,8 @@ def depth_fit_score(elevation: np.ndarray, depth_range_m: tuple[float, float] | 
     return fit.astype(np.float32)
 
 
-COAST_PEAK_M = 100  # distanza dalla riva a cui il termine sottocosta e' massimo
+COAST_RAMP_M = 30  # rampa breve a filo riva (~1 pixel)
+COAST_PLATEAU_M = 200  # fino a qui il termine sottocosta resta al massimo
 COAST_BAND_M = 600  # fascia "sotto costa": qui il fondale roccioso scende subito
 MESCO_LON, RIOMAGGIORE_LON = 9.645, 9.745  # arco favorito (esperienza diretta dell'utente)
 ZONE_BOOST_MAX = 0.15  # +15% al massimo, sfuma ai bordi: un favore, non un dogma
@@ -66,13 +67,15 @@ def shallow_gate(grid: MorphologyGrid) -> np.ndarray:
 
 
 def coast_term(grid: MorphologyGrid, depth_fit: np.ndarray) -> np.ndarray:
-    """0..1: massimo a ~COAST_PEAK_M dalla riva e cala fino a 0 a COAST_BAND_M. Premia il
+    """0..1: pieno tra COAST_RAMP_M e COAST_PLATEAU_M dalla riva, poi cala fino a 0 a COAST_BAND_M. Premia il
     sottocosta (3-40 m) dove c'e' anche pendenza o rilievo; e' pesato dal
     fit di profondita' della specie."""
-    # Sale da 0 a riva fino al massimo a COAST_PEAK_M e poi cala fino a COAST_BAND_M:
-    # il massimo a filo riva sulla mappa sembrava "sulla scogliera".
+    # Pieno da COAST_RAMP_M a COAST_PLATEAU_M dalla riva (le zone buone stanno
+    # entro i primi 100-200 m: esperienza diretta dell'utente), poi cala fino a
+    # 0 a COAST_BAND_M. Solo il primo pixel a filo scoglio e' attenuato (rampa
+    # breve): il resto del sottocosta non va penalizzato.
     d = grid.distance_to_coast_m
-    near = np.clip(d / COAST_PEAK_M, 0, 1) * np.clip(1 - (d - COAST_PEAK_M) / (COAST_BAND_M - COAST_PEAK_M), 0, 1)
+    near = np.clip(d / COAST_RAMP_M, 0, 1) * np.clip(1 - (d - COAST_PLATEAU_M) / (COAST_BAND_M - COAST_PLATEAU_M), 0, 1)
     structure = np.clip(0.5 + 0.5 * np.maximum(grid.slope_score, grid.shoal_score), 0, 1)
     return (near * structure * depth_fit).astype(np.float32)
 
