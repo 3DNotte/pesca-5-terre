@@ -1,11 +1,22 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pesca-5-terre",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-09-16",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pesca5terre-feedback",
+      "database_id": "14af25b4-c06d-45d5-941f-a1de451f2800",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

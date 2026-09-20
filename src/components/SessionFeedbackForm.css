@@ -11,3 +11,31 @@
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
 }
+
+.poi-form.session-feedback-form--hidden { display: none; }
+.poi-form.session-feedback-form { width: 290px; }
+
+.sf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sf-chip {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #16324f;
+  background: #fff;
+  color: #16324f;
+  cursor: pointer;
+}
+.sf-chip.active { background: #16324f; color: #fff; }
+
+.sf-consent {
+  background: #eef5fc;
+  border: 1px solid #cfe0f3;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  color: #123;
+}
+.sf-consent-actions { display: flex; gap: 6px; margin-top: 6px; }
+.sf-consent-actions button { flex: 1; }
+.sf-hint { font-size: 11px; color: #667; }

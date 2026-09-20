@@ -19,6 +19,9 @@ import { anchorIconSvg } from '../utils/wreckIcon'
 import { reefIconSvg } from '../utils/reefIcon'
 import AddPoiForm from './AddPoiForm'
 import SessionFeedbackForm from './SessionFeedbackForm'
+import ZonePicker from './ZonePicker'
+import { sendFeedback } from '../utils/feedbackSync'
+import { sectorIdAt, type SectorCollection, type SectorFeature } from '../utils/sectors'
 import { useSessionFeedback } from '../hooks/useSessionFeedback'
 import {
   fetchSpecies,
@@ -140,6 +143,9 @@ export default function MapView() {
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
   const [sessionFeedbackOpen, setSessionFeedbackOpen] = useState(false)
   const { addFeedback } = useSessionFeedback()
+  const [sectors, setSectors] = useState<SectorFeature[]>([])
+  const [zonePickerActive, setZonePickerActive] = useState(false)
+  const [pickedSectors, setPickedSectors] = useState<string[]>([])
 
   const { depths: verifiedDepths, removeDepth } = useVerifiedDepths()
 
@@ -187,6 +193,13 @@ export default function MapView() {
 
   useEffect(() => {
     loadDepthGrid().then(setDepthGrid)
+  }, [])
+
+  useEffect(() => {
+    fetch('/data/sectors.geojson')
+      .then((r) => r.json())
+      .then((d: SectorCollection) => setSectors(d.features))
+      .catch(() => setSectors([]))
   }, [])
 
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -1024,10 +1037,23 @@ export default function MapView() {
     setCatchError(null)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const here: [number, number] = [pos.coords.longitude, pos.coords.latitude]
         addCatch({
-          coords: [pos.coords.longitude, pos.coords.latitude],
+          coords: here,
           capturedAt: new Date().toISOString(),
         })
+        // Contributo anonimo (solo con consenso): il settore e se la cattura
+        // e' vicina a uno spot consigliato oggi — calcolato, non chiesto.
+        const spots = scoreResult?.top_spots.slice(0, 3) ?? []
+        const nearIdx = spots.findIndex((sp) => distanceMeters(here, [sp.lon, sp.lat]) <= 400)
+        const sectorId = sectorIdAt(sectors, here[0], here[1])
+        if (sectorId) {
+          void sendFeedback({
+            kind: 'catch',
+            sectors: [sectorId],
+            followed: nearIdx >= 0 ? (`spot${nearIdx + 1}` as 'spot1' | 'spot2' | 'spot3') : spots.length ? 'other' : null,
+          })
+        }
         setCapturingCatch(false)
       },
       (err) => {
@@ -1074,10 +1100,36 @@ export default function MapView() {
       {sessionFeedbackOpen && (
         <SessionFeedbackForm
           speciesList={speciesList}
-          onCancel={() => setSessionFeedbackOpen(false)}
+          recommendedSpots={(scoreResult?.top_spots ?? []).slice(0, 3).map((spot, i) => ({
+            rank: (i + 1) as 1 | 2 | 3,
+            sectorId: sectorIdAt(sectors, spot.lon, spot.lat),
+          }))}
+          pickedSectors={pickedSectors}
+          onPickZone={() => setZonePickerActive(true)}
+          hidden={zonePickerActive}
+          onCancel={() => {
+            setSessionFeedbackOpen(false)
+            setPickedSectors([])
+          }}
           onSave={(data) => {
             addFeedback(data)
+            void sendFeedback({ kind: 'bad_day', ...data })
             setSessionFeedbackOpen(false)
+            setPickedSectors([])
+          }}
+        />
+      )}
+
+      {zonePickerActive && mapRef.current && sectors.length > 0 && (
+        <ZonePicker
+          map={mapRef.current}
+          sectors={sectors}
+          selected={pickedSectors}
+          onChange={setPickedSectors}
+          onDone={() => setZonePickerActive(false)}
+          onCancel={() => {
+            setZonePickerActive(false)
+            setPickedSectors([])
           }}
         />
       )}
@@ -1226,7 +1278,7 @@ export default function MapView() {
             </button>
 
             <button type="button" className="add-poi-btn" onClick={() => setSessionFeedbackOpen(true)}>
-              🎣 Come è andata oggi?
+              😕 Giornata storta?
             </button>
           </>
         )}

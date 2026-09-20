@@ -1,160 +1,181 @@
 import { useState } from 'react'
-import type { AdviceMatch } from '../types/sessionFeedback'
+import type { FeedbackReason, FollowedSpot } from '../types/sessionFeedback'
+import { REASON_LABELS } from '../types/sessionFeedback'
 import type { SpeciesInfo } from '../api/scoring'
+import { getConsent, setConsent, type Consent } from '../utils/feedbackSync'
 import './AddPoiForm.css'
 import './SessionFeedbackForm.css'
 
+export interface RecommendedSpot {
+  rank: 1 | 2 | 3
+  sectorId: string | null
+}
+
 interface Props {
   speciesList: SpeciesInfo[]
+  /** Spot consigliati dal wizard di oggi (vuoto se non l'hai usato). */
+  recommendedSpots: RecommendedSpot[]
+  /** Settori scelti col cerchio sulla mappa. */
+  pickedSectors: string[]
+  onPickZone: () => void
+  hidden: boolean
   onCancel: () => void
   onSave: (data: {
-    fished: boolean
-    species?: string
-    coords?: [number, number]
-    caught: boolean | null
-    matchedAdvice: AdviceMatch | null
+    species: string
+    followed: FollowedSpot
+    sectors: string[]
+    reasons: FeedbackReason[]
     note?: string
   }) => void
 }
 
-export default function SessionFeedbackForm({ speciesList, onCancel, onSave }: Props) {
-  const [fished, setFished] = useState<boolean | null>(null)
+export default function SessionFeedbackForm({
+  speciesList,
+  recommendedSpots,
+  pickedSectors,
+  onPickZone,
+  hidden,
+  onCancel,
+  onSave,
+}: Props) {
+  const [consent, setConsentState] = useState<Consent>(() => getConsent())
   const [species, setSpecies] = useState('')
-  const [caught, setCaught] = useState<boolean | null>(null)
-  const [matchedAdvice, setMatchedAdvice] = useState<AdviceMatch | null>(null)
+  const [where, setWhere] = useState<FollowedSpot | null>(null)
+  const [reasons, setReasons] = useState<FeedbackReason[]>([])
   const [note, setNote] = useState('')
-  const [coords, setCoords] = useState<[number, number] | null>(null)
-  const [locating, setLocating] = useState(false)
 
-  const useCurrentPosition = () => {
-    if (!('geolocation' in navigator)) return
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords([pos.coords.longitude, pos.coords.latitude])
-        setLocating(false)
-      },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 10000 },
-    )
+  const chooseConsent = (v: 'yes' | 'no') => {
+    setConsent(v)
+    setConsentState(v)
   }
 
-  const handleSaveNo = () => {
-    onSave({ fished: false, caught: null, matchedAdvice: null })
-  }
+  const toggleReason = (r: FeedbackReason) =>
+    setReasons((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]))
 
-  const handleSaveYes = () => {
-    onSave({
-      fished: true,
-      species: species || undefined,
-      coords: coords ?? undefined,
-      caught,
-      matchedAdvice,
-      note: note.trim() || undefined,
-    })
+  const spotFor = (w: FollowedSpot) => recommendedSpots.find((s) => `spot${s.rank}` === w)
+  const sectors =
+    where === 'other' ? pickedSectors : where ? [spotFor(where)?.sectorId].filter((s): s is string => !!s) : []
+  const canSend = !!species && !!where && sectors.length > 0
+
+  const handleSave = () => {
+    if (!canSend || !where) return
+    onSave({ species, followed: where, sectors, reasons, note: note.trim() || undefined })
   }
 
   return (
-    <div className="poi-form session-feedback-form">
-      <div className="poi-form-title">Aiuta l'app a dare consigli migliori</div>
+    <div className={`poi-form session-feedback-form${hidden ? ' session-feedback-form--hidden' : ''}`}>
+      <div className="poi-form-title">Giornata storta?</div>
       <div className="poi-form-coords">
-        Due domande veloci: servono a capire quando il consiglio ha funzionato e quando no —
-        anche le uscite senza pesce sono utili quanto quelle con pesce.
+        Raccontaci dove e cosa non ha funzionato: i giorni senza pesce servono all'app quanto quelli buoni.
+      </div>
+
+      {consent === null && (
+        <div className="sf-consent">
+          Vuoi aiutare l'app a migliorare per tutti? I dati sono <strong>anonimi</strong>: nessun nome né account, solo
+          zona (quadrati di ~500 m), specie e motivi.
+          <div className="sf-consent-actions">
+            <button type="button" className="primary" onClick={() => chooseConsent('yes')}>
+              Sì, aiuto l'app
+            </button>
+            <button type="button" onClick={() => chooseConsent('no')}>
+              No, solo sul telefono
+            </button>
+          </div>
+        </div>
+      )}
+      {consent === 'yes' && (
+        <div className="sf-hint">
+          ✔ Condivisione anonima attiva.{' '}
+          <button type="button" className="sf-chip" onClick={() => chooseConsent('no')}>
+            Disattiva
+          </button>
+        </div>
+      )}
+      {consent === 'no' && (
+        <div className="sf-hint">
+          I dati restano solo sul tuo telefono.{' '}
+          <button type="button" className="sf-chip" onClick={() => chooseConsent('yes')}>
+            Attiva condivisione
+          </button>
+        </div>
+      )}
+
+      <label>
+        Che specie insidiavi?
+        <select value={species} onChange={(e) => setSpecies(e.target.value)}>
+          <option value="">Scegli…</option>
+          {speciesList.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div>
+        Dove?
+        <div className="sf-chips" style={{ marginTop: 4 }}>
+          {recommendedSpots.map((s) => (
+            <button
+              key={s.rank}
+              type="button"
+              className={`sf-chip${where === `spot${s.rank}` ? ' active' : ''}`}
+              onClick={() => setWhere(`spot${s.rank}` as FollowedSpot)}
+              disabled={!s.sectorId}
+            >
+              Spot {s.rank} consigliato
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`sf-chip${where === 'other' ? ' active' : ''}`}
+            onClick={() => {
+              setWhere('other')
+              if (pickedSectors.length === 0) onPickZone()
+            }}
+          >
+            Altrove
+          </button>
+        </div>
+        {where === 'other' && (
+          <button type="button" style={{ marginTop: 6 }} onClick={onPickZone}>
+            🖍️ {pickedSectors.length > 0 ? `${pickedSectors.length} settori — modifica` : 'Cerchia la zona sulla mappa'}
+          </button>
+        )}
+        {recommendedSpots.length === 0 && (
+          <div className="sf-hint">Gli spot consigliati compaiono se usi prima "Peschiamo!".</div>
+        )}
+      </div>
+
+      <div>
+        Cosa è andato storto? (facoltativo)
+        <div className="sf-chips" style={{ marginTop: 4 }}>
+          {(Object.keys(REASON_LABELS) as FeedbackReason[]).map((r) => (
+            <button
+              key={r}
+              type="button"
+              className={`sf-chip${reasons.includes(r) ? ' active' : ''}`}
+              onClick={() => toggleReason(r)}
+            >
+              {REASON_LABELS[r]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <label>
-        Hai pescato oggi?
-        <div className="poi-form-actions" style={{ justifyContent: 'flex-start' }}>
-          <button type="button" className={fished === true ? 'primary' : ''} onClick={() => setFished(true)}>
-            Sì
-          </button>
-          <button type="button" className={fished === false ? 'primary' : ''} onClick={() => setFished(false)}>
-            No
-          </button>
-        </div>
+        Altro da dirci (facoltativo, max 300 caratteri)
+        <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={2} />
+        <span className="sf-hint">Lo leggo io: l'app non lo interpreta da sola.</span>
       </label>
-
-      {fished === true && (
-        <>
-          <label>
-            Che specie cercavi?
-            <select value={species} onChange={(e) => setSpecies(e.target.value)}>
-              <option value="">Non ricordo / varie</option>
-              {speciesList.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Hai preso qualcosa?
-            <div className="poi-form-actions" style={{ justifyContent: 'flex-start' }}>
-              <button type="button" className={caught === true ? 'primary' : ''} onClick={() => setCaught(true)}>
-                Sì
-              </button>
-              <button type="button" className={caught === false ? 'primary' : ''} onClick={() => setCaught(false)}>
-                No
-              </button>
-            </div>
-          </label>
-
-          <label>
-            Il consiglio dell'app corrispondeva a quello che hai trovato in mare?
-            <div className="poi-form-actions" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className={matchedAdvice === 'si' ? 'primary' : ''}
-                onClick={() => setMatchedAdvice('si')}
-              >
-                Sì
-              </button>
-              <button
-                type="button"
-                className={matchedAdvice === 'cosi_cosi' ? 'primary' : ''}
-                onClick={() => setMatchedAdvice('cosi_cosi')}
-              >
-                Così così
-              </button>
-              <button
-                type="button"
-                className={matchedAdvice === 'no' ? 'primary' : ''}
-                onClick={() => setMatchedAdvice('no')}
-              >
-                No
-              </button>
-            </div>
-          </label>
-
-          <label>
-            Dove, all'incirca? (opzionale)
-            <button type="button" onClick={useCurrentPosition} disabled={locating}>
-              {locating ? 'Rilevo posizione…' : coords ? '📍 Posizione rilevata' : '📍 Usa posizione attuale'}
-            </button>
-          </label>
-
-          <label>
-            Note (corrente, orario, cosa non ha funzionato…)
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
-          </label>
-        </>
-      )}
 
       <div className="poi-form-actions">
         <button type="button" onClick={onCancel}>
           Annulla
         </button>
-        {fished === true && (
-          <button type="button" className="primary" onClick={handleSaveYes}>
-            Invia
-          </button>
-        )}
-        {fished === false && (
-          <button type="button" className="primary" onClick={handleSaveNo}>
-            Invia
-          </button>
-        )}
+        <button type="button" className="primary" onClick={handleSave} disabled={!canSend || consent === null}>
+          Invia
+        </button>
       </div>
     </div>
   )

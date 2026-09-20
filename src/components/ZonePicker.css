@@ -1,0 +1,36 @@
+.zone-picker-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  touch-action: none;
+  cursor: crosshair;
+}
+.zone-picker-overlay--move { pointer-events: none; }
+.zone-picker-canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
+
+.zone-picker-bar {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(92vw, 420px);
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+}
+.zone-picker-hint { margin-bottom: 8px; color: #223; }
+.zone-picker-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.zone-picker-actions button {
+  flex: 1 1 auto;
+  padding: 7px 10px;
+  border: 1px solid #b8c4d4;
+  background: #fff;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.zone-picker-actions button.primary { background: #0b6bcb; border-color: #0b6bcb; color: #fff; }
+.zone-picker-actions button:disabled { opacity: 0.45; cursor: default; }

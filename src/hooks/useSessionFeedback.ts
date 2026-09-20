@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { SessionFeedback } from '../types/sessionFeedback'
 
-const STORAGE_KEY = 'pesca5terre.session_feedback.v1'
+const STORAGE_KEY = 'pesca5terre.session_feedback.v2'
 
 function load(): SessionFeedback[] {
   try {
@@ -25,11 +25,7 @@ export function useSessionFeedback() {
   }, [feedback])
 
   const addFeedback = useCallback((f: Omit<SessionFeedback, 'id' | 'createdAt'>) => {
-    const entry: SessionFeedback = {
-      ...f,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    }
+    const entry: SessionFeedback = { ...f, id: crypto.randomUUID(), createdAt: new Date().toISOString() }
     setFeedback((prev) => [...prev, entry])
     return entry
   }, [])
