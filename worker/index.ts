@@ -65,6 +65,22 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
   return json({ ok: true })
 }
 
+// Proxy con cache verso Open-Meteo, per il backend su Render: Open-Meteo limita
+// le richieste per indirizzo IP e gli IP condivisi di Render gratuito ricevono
+// 429. Da qui la chiamata parte da Cloudflare e la risposta e' in cache 30 minuti,
+// quindi a Open-Meteo arriva al massimo una richiesta ogni 30 min per URL.
+const OPEN_METEO_UPSTREAM: Record<string, string> = {
+  '/api/om/marine': 'https://marine-api.open-meteo.com/v1/marine',
+  '/api/om/forecast': 'https://api.open-meteo.com/v1/forecast',
+}
+
+async function handleOpenMeteo(url: URL): Promise<Response> {
+  const upstream = OPEN_METEO_UPSTREAM[url.pathname]
+  if (!upstream || url.search.length > 600) return json({ error: 'non consentito' }, 400)
+  const res = await fetch(`${upstream}${url.search}`, { cf: { cacheTtl: 1800, cacheEverything: true } })
+  return new Response(res.body, { status: res.status, headers: { 'content-type': 'application/json' } })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -72,6 +88,7 @@ export default {
       if (request.method !== 'POST') return json({ error: 'metodo non consentito' }, 405)
       return handleFeedback(request, env)
     }
+    if (url.pathname.startsWith('/api/om/') && request.method === 'GET') return handleOpenMeteo(url)
     return env.ASSETS.fetch(request)
   },
 }

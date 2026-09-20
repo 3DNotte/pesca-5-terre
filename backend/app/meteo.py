@@ -34,10 +34,24 @@ class MeteoUnavailable(Exception):
     pass
 
 
+# Proxy con cache su Cloudflare (worker/index.ts): Open-Meteo limita per IP e gli
+# IP condivisi di Render gratuito ricevono 429. Si prova prima la chiamata
+# diretta (da casa/sviluppo funziona), poi il proxy.
+PROXY_BASE = "https://pesca-5-terre.tuturial.workers.dev"
+PROXY_PATHS = {MARINE_URL: "/api/om/marine", WEATHER_URL: "/api/om/forecast"}
+
+
 def _fetch_json(url: str, params: dict) -> dict:
-    full_url = f"{url}?{urlencode(params)}"
-    with urlopen(full_url, timeout=8) as resp:
-        return json.load(resp)
+    query = urlencode(params)
+    try:
+        with urlopen(f"{url}?{query}", timeout=8) as resp:
+            return json.load(resp)
+    except Exception:
+        proxy_path = PROXY_PATHS.get(url)
+        if proxy_path is None:
+            raise
+        with urlopen(f"{PROXY_BASE}{proxy_path}?{query}", timeout=15) as resp:
+            return json.load(resp)
 
 
 @lru_cache(maxsize=64)
