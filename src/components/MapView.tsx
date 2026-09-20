@@ -52,6 +52,11 @@ const POI_TYPE_COLOR: Record<PoiType, string> = {
   mangiata: '#1a5d1a',
 }
 
+// Secche rilevate: colore per altezza (m). <= LOW_MAX verde, >= HIGH_MIN rosso, in mezzo giallo.
+const SHOAL_LOW_MAX_M = 1
+const SHOAL_HIGH_MIN_M = 5
+const SHOAL_COLORS = { low: '#2e9b3a', mid: '#f2b705', high: '#c62828' }
+
 const SCORE_SOURCE_ID = 'predictive-score'
 const SCORE_LAYER_ID = 'predictive-score-layer'
 
@@ -767,13 +772,15 @@ export default function MapView() {
       regione_liguria_isobate: 'Isobate Regione Liguria (rilievo 2012)',
       emodnet: 'EMODnet Bathymetry (stima, ~115m/pixel)',
     }
-    // Tutte rosse (interesse alto): la profondita' e' gia' nel popup.
-    const SHOAL_COLOR = 'rgb(198, 40, 40)'
+    // Colore per ALTEZZA della secca (scelta dell'utente): quelle di 1 m o meno
+    // sono poco interessanti (verde), le medie gialle, le alte rosse.
+    const colorForShoalHeight = (heightM: number): string =>
+      heightM <= SHOAL_LOW_MAX_M ? SHOAL_COLORS.low : heightM < SHOAL_HIGH_MIN_M ? SHOAL_COLORS.mid : SHOAL_COLORS.high
     for (const shoal of realShoals) {
       const [lon, lat] = shoal.geometry.coordinates
       const el = document.createElement('div')
       el.className = 'poi-marker poi-marker-reef poi-marker-reef-real'
-      el.innerHTML = reefIconSvg(SHOAL_COLOR, 30)
+      el.innerHTML = reefIconSvg(colorForShoalHeight(shoal.properties.height_m), 30)
       el.title = `Secca: cima a ${shoal.properties.depth_m} m, alta ${shoal.properties.height_m} m`
 
       const popupContainer = document.createElement('div')
@@ -1158,6 +1165,13 @@ export default function MapView() {
               />
               Secche
             </label>
+            {realShoalsVisible && (
+              <div className="score-legend">
+                <span style={{ background: SHOAL_COLORS.high }} /> alta (5 m o più)
+                <span style={{ background: SHOAL_COLORS.mid }} /> media
+                <span style={{ background: SHOAL_COLORS.low }} /> bassa (1 m o meno)
+              </div>
+            )}
 
             <label className="layer-toggle">
               <input
