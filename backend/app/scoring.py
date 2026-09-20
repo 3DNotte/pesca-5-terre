@@ -24,7 +24,6 @@ per cella in base alla pressione locale — non serve un caso speciale.
 from datetime import datetime
 
 import numpy as np
-from scipy.ndimage import maximum_filter
 
 from .config import WEIGHTS
 from .meteo import MeteoUnavailable, get_conditions, meteo_score_grid
@@ -50,28 +49,30 @@ def depth_fit_score(elevation: np.ndarray, depth_range_m: tuple[float, float] | 
     return fit.astype(np.float32)
 
 
+COAST_PEAK_M = 100  # distanza dalla riva a cui il termine sottocosta e' massimo
 COAST_BAND_M = 600  # fascia "sotto costa": qui il fondale roccioso scende subito
 MESCO_LON, RIOMAGGIORE_LON = 9.645, 9.745  # arco favorito (esperienza diretta dell'utente)
 ZONE_BOOST_MAX = 0.15  # +15% al massimo, sfuma ai bordi: un favore, non un dogma
 ZONE_COAST_REACH_M = 1500
 
 
-def coastal_depth_fit(grid: MorphologyGrid, depth_range_m: tuple[float, float] | None) -> np.ndarray:
-    """Fit di profondita' per la fascia sotto costa. La griglia EMODnet e'
-    a ~115 m/pixel: il pixel piu' vicino a riva mescola terra e mare e dice
-    "2 m" anche dove, su questa costa che cade a picco, a 100-200 m dalla riva
-    ci sono 20-30 m. Uso quindi la profondita' massima nell'intorno 3x3 (~115 m
-    di raggio), cioe' quella davvero raggiungibile subito fuori dalla riva."""
+def shallow_gate(grid: MorphologyGrid) -> np.ndarray:
+    """0..1: fondali sotto ~3 m non sono pescabili/raggiungibili in barca
+    (frangenti, scogli a filo d'acqua). Sale da 0 a 1 tra 1 e 4 m. Serve a
+    non far "accendere" la fascia a filo riva, che graficamente sembra
+    la scogliera stessa."""
     depth = np.where(grid.sea_mask, -grid.elevation, 0.0)
-    reachable = maximum_filter(depth, size=3, mode="nearest")
-    return depth_fit_score(-reachable, depth_range_m)
+    return np.clip((depth - 1.0) / 3.0, 0, 1).astype(np.float32)
 
 
 def coast_term(grid: MorphologyGrid, depth_fit: np.ndarray) -> np.ndarray:
-    """0..1: massimo a riva e cala fino a 0 a COAST_BAND_M. Premia il
+    """0..1: massimo a ~COAST_PEAK_M dalla riva e cala fino a 0 a COAST_BAND_M. Premia il
     sottocosta (3-40 m) dove c'e' anche pendenza o rilievo; e' pesato dal
     fit di profondita' della specie."""
-    near = np.clip(1 - grid.distance_to_coast_m / COAST_BAND_M, 0, 1)
+    # Sale da 0 a riva fino al massimo a COAST_PEAK_M e poi cala fino a COAST_BAND_M:
+    # il massimo a filo riva sulla mappa sembrava "sulla scogliera".
+    d = grid.distance_to_coast_m
+    near = np.clip(d / COAST_PEAK_M, 0, 1) * np.clip(1 - (d - COAST_PEAK_M) / (COAST_BAND_M - COAST_PEAK_M), 0, 1)
     structure = np.clip(0.5 + 0.5 * np.maximum(grid.slope_score, grid.shoal_score), 0, 1)
     return (near * structure * depth_fit).astype(np.float32)
 
@@ -107,11 +108,11 @@ def _spatial_term(species: SpeciesProfile) -> np.ndarray:
     else:
         aff = 0.6 + 0.4 * species.structure_affinity  # ammorbidita: l'affinita' non deve annullare il posto
         spaziale = np.clip(
-            0.60 * morf_n * aff * depth_fit + 0.40 * coast_term(grid, coastal_depth_fit(grid, species.depth_range_m)) * aff,
+            0.60 * morf_n * aff * depth_fit + 0.40 * coast_term(grid, depth_fit) * aff,
             0,
             1,
         )
-    result = np.clip(spaziale * zone_boost(grid), 0, 1).astype(np.float32)
+    result = np.clip(spaziale * zone_boost(grid) * shallow_gate(grid), 0, 1).astype(np.float32)
     _SPATIAL_CACHE[species.key] = result
     return result
 
