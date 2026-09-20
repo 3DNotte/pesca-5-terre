@@ -113,9 +113,9 @@
 }
 
 .poi-marker-reef-low {
-  /* icona verde ridotta del 75%: contenitore stretto, non 40px */
-  width: 10px;
-  height: 10px;
+  /* icona verde ridotta del 33%: contenitore in proporzione (40px * 0.67) */
+  width: 27px;
+  height: 27px;
 }
 
 .poi-marker-reef:hover {

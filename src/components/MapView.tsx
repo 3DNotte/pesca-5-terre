@@ -813,9 +813,9 @@ export default function MapView() {
       const [lon, lat] = shoal.geometry.coordinates
       const el = document.createElement('div')
       const isLow = shoal.properties.height_m <= SHOAL_LOW_MAX_M
-      // Le secche basse (verdi) sono le meno interessanti: icona ridotta del 75%.
+      // Le secche basse (verdi) sono le meno interessanti: icona ridotta del 33%.
       el.className = `poi-marker poi-marker-reef poi-marker-reef-real${isLow ? ' poi-marker-reef-low' : ''}`
-      el.innerHTML = reefIconSvg(colorForShoalHeight(shoal.properties.height_m), isLow ? 30 * 0.25 : 30)
+      el.innerHTML = reefIconSvg(colorForShoalHeight(shoal.properties.height_m), isLow ? 30 * 0.67 : 30)
       el.title = `Secca: cima a ${shoal.properties.depth_m} m, alta ${shoal.properties.height_m} m`
 
       const popupContainer = document.createElement('div')
