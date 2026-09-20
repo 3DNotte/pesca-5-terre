@@ -38,6 +38,7 @@ from shapely.strtree import STRtree
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 TIF_PATH = BACKEND_DIR / "data" / "bathymetry" / "amp_bathy.tif"
+FINE_TIF_PATH = BACKEND_DIR / "data" / "bathymetry" / "amp_bathy_fine.tif"
 ISOBATHS_PATH = BACKEND_DIR / "data" / "bathymetry" / "liguria_isobaths_detailed.geojson"
 GEOJSON_OUT = BACKEND_DIR.parent / "public" / "data" / "real_shoals.geojson"
 
@@ -48,6 +49,7 @@ APP_AREA_BOUNDS = ((9.53, 44.04), (9.82, 44.23))
 
 MIN_RING_AREA_M2 = 300  # sotto, e' rumore di digitalizzazione, non una secca reale
 MAX_RING_AREA_M2 = 500_000  # 0.5 kmq: oltre e' un bacino/pianoro, non una secca isolata
+BASE_SAMPLE_OFFSET_M = 60  # distanza dall'anello piu' esterno a cui si misura il fondale "di base"
 MAX_DEPTH_M = 90  # oltre, fuori dal range pratico delle specie sottocosta modellate in questa app
 
 # Fallback al largo (EMODnet, grossolano) — stesso metodo a griglia della
@@ -64,6 +66,39 @@ def _deg_per_meter(lat_deg: float) -> tuple[float, float]:
     deg_lat_m = 1 / 111_320.0
     deg_lon_m = 1 / (111_320.0 * np.cos(np.radians(lat_deg)))
     return deg_lon_m, deg_lat_m
+
+
+class _DepthSampler:
+    """Profondita' del fondale in un punto lon/lat, dalla griglia fine
+    (dati reali Regione Liguria + EMODnet). None se il punto e' su terra."""
+
+    def __init__(self, path: Path) -> None:
+        self.ds = rasterio.open(path)
+        self.elev = self.ds.read(1)
+
+    def depth(self, lon: float, lat: float) -> float | None:
+        try:
+            r, c = self.ds.index(lon, lat)
+        except Exception:
+            return None
+        if not (0 <= r < self.elev.shape[0] and 0 <= c < self.elev.shape[1]):
+            return None
+        e = float(self.elev[r, c])
+        return -e if e < 0 else None
+
+
+def _base_depth_m(outer_poly, sampler: _DepthSampler, deg_lon_m: float, deg_lat_m: float) -> float | None:
+    """Fondale di base della secca: mediana della profondita' lungo un anello
+    a BASE_SAMPLE_OFFSET_M fuori dal contorno piu' esterno (il "piede")."""
+    ring = outer_poly.buffer(BASE_SAMPLE_OFFSET_M).exterior
+    n = max(int(ring.length // 20), 12)
+    values = []
+    for i in range(n):
+        pt = ring.interpolate(i / n, normalized=True)
+        d = sampler.depth(pt.x * deg_lon_m, pt.y * deg_lat_m)
+        if d is not None:
+            values.append(d)
+    return float(np.median(values)) if len(values) >= 6 else None
 
 
 def detect_ring_shoals() -> list[dict]:
@@ -114,13 +149,32 @@ def detect_ring_shoals() -> list[dict]:
     (area_lon_min, area_lat_min), (area_lon_max, area_lat_max) = APP_AREA_BOUNDS
     features = []
     out_of_area = 0
+    sampler = _DepthSampler(FINE_TIF_PATH)
     for r in summits:
         cx, cy = r["centroid_m"].x, r["centroid_m"].y
         lon, lat = cx * deg_lon_m, cy * deg_lat_m
         if not (area_lon_min <= lon <= area_lon_max and area_lat_min <= lat <= area_lat_max):
             out_of_area += 1
             continue
-        features.append({"lon": lon, "lat": lat, "depth_m": float(r["depth"]), "source": "regione_liguria_isobate"})
+        # Anello piu' esterno del gruppo annidato: il piede della secca.
+        outer = r["poly"]
+        for j in tree.query(r["poly"]):
+            cand = rings[int(j)]
+            if cand["depth"] > r["depth"] and cand["poly"].contains(r["centroid_m"]) and cand["poly"].area > outer.area:
+                outer = cand["poly"]
+        base = _base_depth_m(outer, sampler, deg_lon_m, deg_lat_m)
+        summit = float(r["depth"])
+        base = max(base, summit + 1) if base is not None else summit + 1
+        features.append(
+            {
+                "lon": lon,
+                "lat": lat,
+                "depth_m": summit,
+                "base_depth_m": round(base, 1),
+                "height_m": round(base - summit, 1),
+                "source": "regione_liguria_isobate",
+            }
+        )
     print(f"Scartate {out_of_area} secche fuori dall'area operativa dell'app")
     return features
 
@@ -166,11 +220,22 @@ def detect_coarse_shoals(exclude: list[dict]) -> list[dict]:
             if np.min(np.hypot(dx, dy)) < DEDUP_RADIUS_M:
                 skipped += 1
                 continue
+        # Fondale di base: mediana sull'anello di pixel a distanza 3 (~350 m).
+        r0, r1, c0, c1 = max(r - 3, 0), min(r + 4, depth.shape[0]), max(c - 3, 0), min(c + 4, depth.shape[1])
+        window_depth = depth[r0:r1, c0:c1]
+        window_sea = sea_mask[r0:r1, c0:c1]
+        rr, cc = np.mgrid[r0:r1, c0:c1]
+        on_ring = np.maximum(np.abs(rr - r), np.abs(cc - c)) == 3
+        base_vals = window_depth[on_ring & window_sea]
+        summit = round(float(depth[r, c]), 1)
+        base = max(float(np.median(base_vals)) if base_vals.size >= 4 else summit + 1, summit + 1)
         features.append(
             {
                 "lon": float(lon),
                 "lat": float(lat),
-                "depth_m": round(float(depth[r, c]), 1),
+                "depth_m": summit,
+                "base_depth_m": round(base, 1),
+                "height_m": round(base - summit, 1),
                 "source": "emodnet",
             }
         )
@@ -189,7 +254,12 @@ def main() -> None:
             {
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [f["lon"], f["lat"]]},
-                "properties": {"depth_m": f["depth_m"], "source": f["source"]},
+                "properties": {
+                    "depth_m": f["depth_m"],
+                    "base_depth_m": f["base_depth_m"],
+                    "height_m": f["height_m"],
+                    "source": f["source"],
+                },
             }
             for f in all_shoals
         ],

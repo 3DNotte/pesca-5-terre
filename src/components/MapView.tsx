@@ -774,13 +774,15 @@ export default function MapView() {
       const el = document.createElement('div')
       el.className = 'poi-marker poi-marker-reef poi-marker-reef-real'
       el.innerHTML = reefIconSvg(SHOAL_COLOR, 30)
-      el.title = `Secca rilevata a ${shoal.properties.depth_m}m`
+      el.title = `Secca: cima a ${shoal.properties.depth_m} m, alta ${shoal.properties.height_m} m`
 
       const popupContainer = document.createElement('div')
       popupContainer.className = 'poi-popup'
       popupContainer.innerHTML = `
         <strong>Secca rilevata (dati reali)</strong><br/>
-        Profondita': ${shoal.properties.depth_m} m<br/>
+        Profondità del mare: ${shoal.properties.base_depth_m} m<br/>
+        Altezza della secca: ${shoal.properties.height_m} m<br/>
+        Cima a ${shoal.properties.depth_m} m<br/>
         Fonte: ${SOURCE_LABEL[shoal.properties.source]}
         <br/><span class="poi-popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
         <br/>${navigateLinkHtml(lat, lon)}
