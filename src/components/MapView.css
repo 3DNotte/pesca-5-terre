@@ -112,6 +112,12 @@
   transition: transform 0.15s ease;
 }
 
+.poi-marker-reef-low {
+  /* icona verde ridotta del 75%: contenitore stretto, non 40px */
+  width: 10px;
+  height: 10px;
+}
+
 .poi-marker-reef:hover {
   transform: scale(1.12);
 }

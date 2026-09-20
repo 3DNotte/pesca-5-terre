@@ -136,9 +136,9 @@ export default function MapView() {
   const [isobathsVisible] = useState(false)
   const [liguriaIsobathsVisible, setLiguriaIsobathsVisible] = useState(true)
   const [hillshadeVisible, setHillshadeVisible] = useState(true)
-  const [ampVisible, setAmpVisible] = useState(true)
+  const [ampVisible, setAmpVisible] = useState(false) // "Altro": spento all'avvio
   const [poiVisible] = useState(true)
-  const [ferryVisible, setFerryVisible] = useState(true)
+  const [ferryVisible, setFerryVisible] = useState(false) // "Altro": spento all'avvio
   const [addPoiMode, setAddPoiMode] = useState(false)
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
   const [sessionFeedbackOpen, setSessionFeedbackOpen] = useState(false)
@@ -259,6 +259,7 @@ export default function MapView() {
         compact: true,
         customAttribution: 'Batimetria: Regione Liguria (SICOAST, CC BY) · EMODnet Bathymetry',
       }),
+      'bottom-left', // in basso a destra finiva sotto il pannello Mappa
     )
 
     map.on('click', (e) => {
@@ -268,6 +269,10 @@ export default function MapView() {
     })
 
     map.on('load', () => {
+      // Attribuzioni obbligatorie (licenze) ma ripiegate dietro l'icona ⓘ: MapLibre
+      // le lascia aperte su schermi larghi.
+      map.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
+
       // --- Batimetria EMODnet ---
       map.addSource(BATHYMETRY_SOURCE_ID, {
         type: 'raster',
@@ -481,6 +486,7 @@ export default function MapView() {
         id: AMP_FILL_LAYER_ID,
         type: 'fill',
         source: AMP_SOURCE_ID,
+        layout: { visibility: 'none' }, // coerente con ampVisible iniziale (false)
         paint: {
           'fill-color': ['match', ['get', 'zone'], 'A', '#d32f2f', 'B', '#fbc02d', '#d32f2f'],
           'fill-opacity': ['match', ['get', 'zone'], 'A', 0.22, 'B', 0.15, 0.18],
@@ -490,6 +496,7 @@ export default function MapView() {
         id: AMP_LINE_LAYER_ID,
         type: 'line',
         source: AMP_SOURCE_ID,
+        layout: { visibility: 'none' },
         paint: {
           'line-color': ['match', ['get', 'zone'], 'A', '#d32f2f', 'B', '#c9a227', '#d32f2f'],
           'line-width': 1.5,
@@ -508,6 +515,7 @@ export default function MapView() {
         id: FERRY_ROUTE_LAYER_ID,
         type: 'line',
         source: FERRY_ROUTE_SOURCE_ID,
+        layout: { visibility: 'none' }, // coerente con ferryVisible iniziale (false)
         paint: { 'line-color': '#e60000', 'line-width': 3 },
       })
 
@@ -804,8 +812,10 @@ export default function MapView() {
     for (const shoal of realShoals) {
       const [lon, lat] = shoal.geometry.coordinates
       const el = document.createElement('div')
-      el.className = 'poi-marker poi-marker-reef poi-marker-reef-real'
-      el.innerHTML = reefIconSvg(colorForShoalHeight(shoal.properties.height_m), 30)
+      const isLow = shoal.properties.height_m <= SHOAL_LOW_MAX_M
+      // Le secche basse (verdi) sono le meno interessanti: icona ridotta del 75%.
+      el.className = `poi-marker poi-marker-reef poi-marker-reef-real${isLow ? ' poi-marker-reef-low' : ''}`
+      el.innerHTML = reefIconSvg(colorForShoalHeight(shoal.properties.height_m), isLow ? 30 * 0.25 : 30)
       el.title = `Secca: cima a ${shoal.properties.depth_m} m, alta ${shoal.properties.height_m} m`
 
       const popupContainer = document.createElement('div')
