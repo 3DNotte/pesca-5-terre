@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
+import { INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
 import { bearingDegrees, compassLabel, distanceMeters } from '../utils/geo'
 import { usePois } from '../hooks/usePois'
 import type { PoiType } from '../types/poi'
@@ -650,9 +651,16 @@ export default function MapView() {
 
       const popupContainer = document.createElement('div')
       popupContainer.className = 'poi-popup'
+      const extraInfo = WRECK_EXTRA[p.wreck_id]
+      const interest = wreckInterest(p.depth_m, p.removed, extraInfo)
+      const sizeLine = extraInfo?.lengthM
+        ? `${extraInfo.lengthM}${extraInfo.beamM ? ` × ${String(extraInfo.beamM).replace(".", ",")}` : ''} m${extraInfo.tonnage ? ` · ${extraInfo.tonnage}` : ''}`
+        : 'non disponibili (dato assente nel database UKHO)'
       popupContainer.innerHTML = `
         <strong>${title}</strong><br/>
         ${mainDetails || 'Dettagli non disponibili'}
+        <br/>Dimensioni: ${sizeLine}
+        <br/>Interesse pesca: <strong>${INTEREST_LABEL[interest.level]}</strong> <span class="poi-popup-coords">(stima: ${interest.reason})</span>
         <br/><span class="poi-popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
         <br/>${navigateLinkHtml(lat, lon)}
       `
@@ -670,6 +678,7 @@ export default function MapView() {
         .filter(Boolean)
         .join(' · ')
       if (extraDetails) extra.innerHTML += `${extraDetails}<br/>`
+      if (extraInfo) extra.innerHTML += `<span class="poi-popup-note">${extraInfo.note} Fonti: ${extraInfo.sources}.</span><br/>`
       if (p.removed) extra.innerHTML += `<span class="poi-popup-note">Segnalato come rimosso/non più presente</span><br/>`
       if (p.circumstance) extra.innerHTML += `<span class="poi-popup-note">${p.circumstance}</span><br/>`
 

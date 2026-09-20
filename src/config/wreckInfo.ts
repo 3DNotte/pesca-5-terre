@@ -1,0 +1,45 @@
+// Informazioni aggiuntive sui relitti, per wreck_id UKHO. Il dataset UKHO non
+// contiene dimensioni: qui ci sono SOLO i dati trovati in fonti verificabili
+// (siti di immersione/storia navale). Per gli altri relitti la dimensione
+// resta "non disponibile": non si stima a occhio.
+export interface WreckExtra {
+  lengthM?: number
+  beamM?: number
+  tonnage?: string
+  note: string
+  sources: string
+}
+
+export const WRECK_EXTRA: Record<string, WreckExtra> = {
+  '36166': {
+    lengthM: 87,
+    beamM: 12.5,
+    tonnage: '2.220 t',
+    note: 'Piroscafo Bolzaneto, affondato nel 1943: spezzato in due tronconi a circa 150 m uno dall’altro; giace tra 40 e 55 m.',
+    sources: 'relittiliguria.it, Diving Group Portofino',
+  },
+}
+
+export type WreckInterest = { level: 'alto' | 'medio' | 'basso' | 'assente'; reason: string }
+
+/** Interesse per la pesca — STIMA da regole semplici, non un dato misurato:
+ * un relitto funziona da scogliera artificiale se sta alle quote in cui
+ * vivono le specie target (dentice, ricciola, serranidi: ~15-90 m). */
+export function wreckInterest(depthM: number | null, removed: boolean, extra?: WreckExtra): WreckInterest {
+  if (removed) return { level: 'assente', reason: 'segnalato come rimosso' }
+  if (depthM == null) return { level: 'medio', reason: 'profondità sconosciuta' }
+  if (depthM < 15) return { level: 'basso', reason: 'troppo basso per le specie target' }
+  if (depthM > 100) return { level: 'basso', reason: 'troppo profondo per la pesca praticabile' }
+  const large = (extra?.lengthM ?? 0) >= 50
+  if (depthM <= 70) {
+    return { level: 'alto', reason: large ? 'grande struttura a quota di pesca' : 'struttura sul fondo a quota di pesca' }
+  }
+  return { level: large ? 'alto' : 'medio', reason: 'quota limite per le specie target' }
+}
+
+export const INTEREST_LABEL: Record<WreckInterest['level'], string> = {
+  alto: 'Alto',
+  medio: 'Medio',
+  basso: 'Basso',
+  assente: 'Non presente',
+}
