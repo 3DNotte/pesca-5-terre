@@ -14,8 +14,11 @@ function toLocalIsoSeconds(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
+export type WizardMode = 'predator' | 'bait'
+
 export interface SpeciesInfo {
   key: string
+  kind?: WizardMode
   label: string
   disturbance_sensitivity: number
   structure_affinity: number
@@ -129,13 +132,17 @@ export async function fetchWizard(options: {
   end: Date
   species: string[] // vuoto = "sorprendimi"
   bottomFishing: boolean
+  mode?: WizardMode
+  gear?: string[] // solo modalita' esche: sabiki, trainetta, bolentino
 }): Promise<WizardResponse> {
   const params = new URLSearchParams({
     start: toLocalIsoSeconds(options.start),
     end: toLocalIsoSeconds(options.end),
     bottom_fishing: String(options.bottomFishing),
   })
+  params.set('mode', options.mode ?? 'predator')
   for (const s of options.species) params.append('species', s)
+  for (const g of options.gear ?? []) params.append('gear', g)
   const res = await fetch(`${API_BASE}/api/wizard?${params}`)
   if (!res.ok) throw new Error(`Errore backend: ${res.status}`)
   return res.json()

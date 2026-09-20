@@ -28,6 +28,7 @@ import {
   fetchWizard,
   type ScoreResponse,
   type SpeciesInfo,
+  type WizardMode,
   type WizardResponse,
 } from '../api/scoring'
 import { imageCoordinates, scoreGridToDataUrl } from '../utils/heatmap'
@@ -212,6 +213,8 @@ export default function MapView() {
     end: Date
     species: string[]
     bottomFishing: boolean
+    mode: WizardMode
+    gear: string[]
   }) => {
     setWizardLoading(true)
     setWizardError(null)

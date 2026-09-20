@@ -1,0 +1,66 @@
+{
+  "sugherello": {
+    "label": "Sugherello",
+    "kind": "bait",
+    "seasonality_by_month": [0.5, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0, 0.9, 0.7, 0.55],
+    "hourly_bands": [
+      {"start": 5, "end": 9, "score": 1.0},
+      {"start": 9, "end": 17, "score": 0.4},
+      {"start": 17, "end": 22, "score": 1.0},
+      {"start": 22, "end": 5, "score": 0.6}
+    ],
+    "disturbance_sensitivity": 0.4,
+    "structure_affinity": 0.3,
+    "depth_range_m": [10, 100],
+    "gear_fit": {"sabiki": 1.0, "bolentino": 0.8, "trainetta": 0.5},
+    "notes": "Trachurus mediterraneus/trachurus. Banchi pelagico-costieri: T. mediterraneus 0-500 m, di solito 5-250 m, adulti spesso vicino al fondo e a volte in superficie (FishBase); T. trachurus adulto in banchi su fondali sabbiosi costieri (FishBase). Il T. mediterraneus si riproduce in primavera-inizio estate e i giovani sono pelagici in estate-inizio autunno (letteratura Mediterraneo occidentale, ScienceDirect S0165783622002600). Il range di profondita' 10-100 m e' un compromesso pratico per la pesca da barca sottocosta, non un dato di letteratura. Le fasce orarie (alba e sera) e la stagionalita' sono STIME da pratica di pesca: nessuna fonte scientifica trovata sull'attivita' giornaliera nel Mar Ligure."
+  },
+  "aguglia": {
+    "label": "Aguglia",
+    "kind": "bait",
+    "seasonality_by_month": [0.15, 0.25, 0.7, 1.0, 1.0, 0.85, 0.6, 0.5, 0.4, 0.3, 0.2, 0.15],
+    "hourly_bands": [
+      {"start": 6, "end": 11, "score": 1.0},
+      {"start": 11, "end": 17, "score": 0.7},
+      {"start": 17, "end": 20, "score": 0.9},
+      {"start": 20, "end": 6, "score": 0.2}
+    ],
+    "disturbance_sensitivity": 0.5,
+    "structure_affinity": 0.3,
+    "depth_range_m": [2, 40],
+    "gear_fit": {"trainetta": 1.0, "sabiki": 0.5, "bolentino": 0.3},
+    "notes": "Belone belone. Specie di superficie con migrazione simile allo sgombro: al largo tranne nel periodo riproduttivo, quando si avvicina alla costa; si riproduce in primavera in acque costiere (Mediterraneo centrale: marzo-maggio, fino a giugno, picco a marzo; Adriatico orientale, Helgoland Marine Research 2010), depone su vegetazione sommersa a cui le uova aderiscono; in inverno si ritira al largo (FishBase; sintesi da Springer/TrJFAS). Profondita' registrata 2-22 m (FishBase). Le fasce orarie sono STIME: nessuna fonte trovata sull'attivita' giornaliera."
+  },
+  "occhiata": {
+    "label": "Occhiata",
+    "kind": "bait",
+    "seasonality_by_month": [0.35, 0.35, 0.45, 0.6, 0.85, 1.0, 1.0, 1.0, 0.95, 0.8, 0.55, 0.4],
+    "hourly_bands": [
+      {"start": 6, "end": 12, "score": 1.0},
+      {"start": 12, "end": 17, "score": 0.8},
+      {"start": 17, "end": 20, "score": 0.9},
+      {"start": 20, "end": 6, "score": 0.25}
+    ],
+    "disturbance_sensitivity": 0.5,
+    "structure_affinity": 0.9,
+    "depth_range_m": [0, 30],
+    "gear_fit": {"bolentino": 1.0, "trainetta": 0.8, "sabiki": 0.7},
+    "notes": "Oblada melanura. Gregaria, forma branchi sopra fondali rocciosi o praterie di Posidonia entro i 30 m (FishBase); l'adulto si trova soprattutto in acqua libera vicino alla costa, dalla superficie a 10-20 m; il reclutamento avviene su rocce con sporgenze (studi in Mediterraneo); si nutre di zooplancton (gamberetti e larve di pesci). Riproduzione da maggio a luglio con picco a giugno (Adriatico orientale, Fisheries Research). Le fasce orarie sono STIME: nessuna fonte trovata sull'attivita' giornaliera nel Mar Ligure."
+  },
+  "cefalopodi": {
+    "label": "Cefalopodi (calamari e seppie)",
+    "kind": "bait",
+    "seasonality_by_month": [0.9, 0.85, 0.7, 0.6, 0.6, 0.7, 0.7, 0.7, 0.85, 1.0, 1.0, 0.95],
+    "hourly_bands": [
+      {"start": 20, "end": 5, "score": 1.0},
+      {"start": 5, "end": 8, "score": 0.7},
+      {"start": 8, "end": 18, "score": 0.3},
+      {"start": 18, "end": 20, "score": 0.8}
+    ],
+    "disturbance_sensitivity": 0.6,
+    "structure_affinity": 0.7,
+    "depth_range_m": [2, 60],
+    "gear_fit": {"trainetta": 0.5, "bolentino": 0.4, "sabiki": 0.3},
+    "notes": "Loligo vulgaris e Sepia officinalis. Il calamaro si sposta di notte su aree piu' ampie che di giorno (tracciamento, Movement patterns of Loligo vulgaris during the inshore spawning season); nel Mediterraneo occidentale i piu' grandi arrivano sotto costa gia' a gennaio-febbraio, i piccoli in estate; riproduzione per gran parte dell'anno con picchi a inizio estate e inizio autunno, deposizione tra 2 e 120 m. Per il Mar Ligure le fonti divulgative indicano il periodo ottobre-marzo, di notte e con luce (La Spezia). I cefalopodi NON si prendono con sabiki, trainetta o bolentino ma con totanare/egi: per questo l'attrezzo pesa poco nel punteggio e l'app lo segnala. Stagionalita' e fasce orarie sono STIME da queste fonti."
+  }
+}

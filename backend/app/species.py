@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 
-from .config import SPECIES_PROFILES_PATH
+from .config import BAIT_PROFILES_PATH, SPECIES_PROFILES_PATH
 
 
 @dataclass
@@ -26,6 +26,10 @@ class SpeciesProfile:
     # non dal fondale — per loro la profondita' non va vincolata.
     depth_range_m: tuple[float, float] | None
     notes: str
+    # 'predator' = specie target; 'bait' = esca da catturare. gear_fit: quanto
+    # ogni attrezzo e' adatto a catturare l'esca (0..1, stima da pratica di pesca).
+    kind: str = "predator"
+    gear_fit: dict[str, float] | None = None
 
     def seasonal_score(self, month: int) -> float:
         return self.seasonality_by_month[month - 1]
@@ -41,9 +45,8 @@ class SpeciesProfile:
         return 0.4
 
 
-@lru_cache(maxsize=1)
-def load_species_profiles() -> dict[str, SpeciesProfile]:
-    with open(SPECIES_PROFILES_PATH, encoding="utf-8") as f:
+def _load_file(path, default_kind: str) -> dict[str, SpeciesProfile]:
+    with open(path, encoding="utf-8") as f:
         raw = json.load(f)
     profiles = {}
     for key, data in raw.items():
@@ -56,5 +59,13 @@ def load_species_profiles() -> dict[str, SpeciesProfile]:
             structure_affinity=data["structure_affinity"],
             depth_range_m=tuple(data["depth_range_m"]) if data.get("depth_range_m") else None,
             notes=data["notes"],
+            kind=data.get("kind", default_kind),
+            gear_fit=data.get("gear_fit"),
         )
     return profiles
+
+
+@lru_cache(maxsize=1)
+def load_species_profiles() -> dict[str, SpeciesProfile]:
+    """Predatori + esche (chiave `kind`); i due file non hanno chiavi in comune."""
+    return {**_load_file(SPECIES_PROFILES_PATH, "predator"), **_load_file(BAIT_PROFILES_PATH, "bait")}

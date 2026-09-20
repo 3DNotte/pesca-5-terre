@@ -7,6 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 _FINE_BATHY = BASE_DIR / "data" / "bathymetry" / "amp_bathy_fine.tif"
 BATHYMETRY_PATH = _FINE_BATHY if _FINE_BATHY.exists() else BASE_DIR / "data" / "bathymetry" / "amp_bathy.tif"
 SPECIES_PROFILES_PATH = BASE_DIR / "data" / "species_profiles.json"
+BAIT_PROFILES_PATH = BASE_DIR / "data" / "bait_profiles.json"
 FERRY_SCHEDULE_PATH = BASE_DIR / "data" / "ferry_schedule.json"
 
 # Centro dell'area operativa, usato come punto di richiesta per le API

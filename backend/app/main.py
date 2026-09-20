@@ -101,17 +101,19 @@ def _grid_payload(score: np.ndarray, grid: MorphologyGrid) -> dict:
 
 
 @app.get("/api/species")
-def list_species():
+def list_species(mode: str | None = Query(None, description="'predator' o 'bait'; vuoto = tutte")):
     profiles = load_species_profiles()
     return [
         {
             "key": p.key,
             "label": p.label,
+            "kind": p.kind,
             "disturbance_sensitivity": p.disturbance_sensitivity,
             "structure_affinity": p.structure_affinity,
             "notes": p.notes,
         }
         for p in profiles.values()
+        if mode is None or p.kind == mode
     ]
 
 
@@ -247,6 +249,30 @@ def _describe_spot(
     )
 
 
+GEAR_LABELS = {"sabiki": "sabiki", "trainetta": "trainetta", "bolentino": "bolentino"}
+
+
+def _gear_factor(profile: SpeciesProfile, gear: list[str]) -> float:
+    """Adattabilita' (0..1) del MIGLIORE tra gli attrezzi scelti per questa esca.
+    Solo per le esche; nessun attrezzo scelto = nessun vincolo. Valori in
+    bait_profiles.json: stime da pratica di pesca, non da fonti scientifiche."""
+    if profile.kind != "bait" or not profile.gear_fit or not gear:
+        return 1.0
+    return max(profile.gear_fit.get(g, 0.5) for g in gear)
+
+
+def _gear_note(profile: SpeciesProfile, gear: list[str]) -> str:
+    if profile.kind != "bait" or not profile.gear_fit or not gear:
+        return ""
+    best = max(gear, key=lambda g: profile.gear_fit.get(g, 0.5))
+    fit = profile.gear_fit.get(best, 0.5)
+    if fit >= 0.9:
+        return f"Con {GEAR_LABELS.get(best, best)} e' l'attrezzo giusto per questa esca."
+    if fit >= 0.6:
+        return f"Con {GEAR_LABELS.get(best, best)} funziona, ma non e' l'attrezzo ideale."
+    return f"Attenzione: con {GEAR_LABELS.get(best, best)} e' poco adatto a questa esca (punteggio ridotto)."
+
+
 @app.get("/api/wizard")
 def wizard(
     start: str = Query(..., description="Inizio finestra, ISO datetime"),
@@ -254,6 +280,8 @@ def wizard(
     species: list[str] = Query(default=[], description="Specie da valutare; vuoto = tutte (sorprendimi)"),
     bottom_fishing: bool = Query(True, description="Puoi presentare l'esca vicino al fondo?"),
     top_n: int = Query(3, ge=1, le=5),
+    mode: str = Query("predator", description="'predator' = cerco il predatore; 'bait' = cerco le esche"),
+    gear: list[str] = Query(default=[], description="Attrezzi per catturare l'esca: sabiki, trainetta, bolentino"),
 ):
     profiles = load_species_profiles()
     dt_start = datetime.fromisoformat(start)
@@ -261,7 +289,9 @@ def wizard(
     if dt_end <= dt_start:
         raise HTTPException(400, "L'orario di fine deve essere successivo all'inizio")
 
-    candidates = species if species else list(profiles.keys())
+    if mode not in ('predator', 'bait'):
+        raise HTTPException(400, "mode deve essere 'predator' o 'bait'")
+    candidates = species if species else [k for k, p in profiles.items() if p.kind == mode]
     for key in candidates:
         if key not in profiles:
             raise HTTPException(404, f"Specie sconosciuta: {key}. Disponibili: {list(profiles)}")
@@ -286,6 +316,10 @@ def wizard(
         profile = profiles[species_key]
         for dt in sample_times:
             result = compute_score_grid(profile, dt, weights)
+            factor = _gear_factor(profile, gear)
+            if factor < 1.0:
+                # L'attrezzo scelto e' poco adatto a questa esca: il punteggio cala, il posto no.
+                result = {**result, "score": result["score"] * factor}
             score = result["score"]
             local_max = float(np.nanmax(score)) if np.isfinite(score).any() else -np.inf
             if local_max > best_score:
@@ -304,6 +338,9 @@ def wizard(
     flat_idx = np.argsort(np.where(finite_mask, score, -np.inf).ravel())[::-1][:1]
     row0, col0 = np.unravel_index(flat_idx[0], score.shape)
     motivation = _describe_spot(profile, grid, result, row0, col0, best_dt)
+    gear_note = _gear_note(profile, gear)
+    if gear_note:
+        motivation = f"{motivation} {gear_note}"
 
     passages = ferry_passages_in_window(dt_start, dt_end)
     ferry_warnings = [
