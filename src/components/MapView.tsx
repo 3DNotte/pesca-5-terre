@@ -653,13 +653,9 @@ export default function MapView() {
       popupContainer.className = 'poi-popup'
       const extraInfo = WRECK_EXTRA[p.wreck_id]
       const interest = wreckInterest(p.depth_m, p.removed, extraInfo)
-      const sizeLine = extraInfo?.lengthM
-        ? `${extraInfo.lengthM}${extraInfo.beamM ? ` × ${String(extraInfo.beamM).replace(".", ",")}` : ''} m${extraInfo.tonnage ? ` · ${extraInfo.tonnage}` : ''}`
-        : 'non disponibili'
       popupContainer.innerHTML = `
         <strong>${title}</strong><br/>
         ${mainDetails || 'Dettagli non disponibili'}
-        <br/>Dimensioni: ${sizeLine}
         <br/>Interesse pesca: <strong>${INTEREST_LABEL[interest.level]}</strong> <span class="poi-popup-coords">(stima: ${interest.reason})</span>
         <br/><span class="poi-popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
         <br/>${navigateLinkHtml(lat, lon)}
