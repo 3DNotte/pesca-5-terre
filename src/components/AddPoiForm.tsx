@@ -5,6 +5,7 @@ import './AddPoiForm.css'
 
 interface Props {
   coords: [number, number]
+  depthMeters: number | null // letta dalla batimetria nel punto toccato: non si chiede all'utente
   onCancel: () => void
   onSave: (data: {
     type: PoiType
@@ -23,11 +24,10 @@ function nowForInput(): string {
   return d.toISOString().slice(0, 16)
 }
 
-export default function AddPoiForm({ coords, onCancel, onSave }: Props) {
+export default function AddPoiForm({ coords, depthMeters, onCancel, onSave }: Props) {
   const [type, setType] = useState<PoiType>('secca')
   const [when, setWhen] = useState(nowForInput())
   const [name, setName] = useState('')
-  const [depth, setDepth] = useState('')
   const [note, setNote] = useState('')
 
   const handleSave = () => {
@@ -36,7 +36,7 @@ export default function AddPoiForm({ coords, onCancel, onSave }: Props) {
       type,
       name: name.trim(),
       capturedAt: new Date(when).toISOString(),
-      depthMeters: depth ? Number(depth) : undefined,
+      depthMeters: depthMeters ?? undefined,
       note: note.trim() || undefined,
     })
   }
@@ -80,13 +80,10 @@ export default function AddPoiForm({ coords, onCancel, onSave }: Props) {
       </label>
 
       <label>
-        Profondita' (m)
-        <input
-          type="number"
-          value={depth}
-          onChange={(e) => setDepth(e.target.value)}
-          placeholder="es. 35"
-        />
+        Profondità
+        <div className="poi-form-coords">
+          {depthMeters != null ? `circa ${depthMeters} m (dalla batimetria)` : 'non disponibile in questo punto'}
+        </div>
       </label>
 
       <label>

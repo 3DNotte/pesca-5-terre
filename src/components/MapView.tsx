@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
+import { depthAt, loadDepthGrid } from '../utils/depthGrid'
 import { EXTRA_WRECKS, INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
 import { bearingDegrees, compassLabel, distanceMeters } from '../utils/geo'
 import { usePois } from '../hooks/usePois'
@@ -166,6 +167,7 @@ export default function MapView() {
 
   const [legendCollapsed, setLegendCollapsed] = useState(false)
   const [otherOpen, setOtherOpen] = useState(false)
+  const [depthGrid, setDepthGrid] = useState<Awaited<ReturnType<typeof loadDepthGrid>>>(null)
 
   const { pois, addPoi, removePoi } = usePois()
 
@@ -181,6 +183,10 @@ export default function MapView() {
       .then((r) => r.json())
       .then((data: RealShoalCollection) => setRealShoals(data.features))
       .catch(() => setRealShoals([]))
+  }, [])
+
+  useEffect(() => {
+    loadDepthGrid().then(setDepthGrid)
   }, [])
 
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -1056,6 +1062,7 @@ export default function MapView() {
       {pendingCoords && (
         <AddPoiForm
           coords={pendingCoords}
+          depthMeters={depthAt(depthGrid, pendingCoords[0], pendingCoords[1])}
           onCancel={() => {
             setPendingCoords(null)
             setAddPoiMode(false)
