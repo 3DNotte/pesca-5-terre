@@ -46,6 +46,11 @@ export const EXTRA_WRECKS: WreckFeature[] = [
   },
 ]
 
+// Relitti UKHO da NON mostrare perche' duplicati di un relitto gia' presente.
+// 36169 "Zatterone 14": a 47 m dall'Equa, 34 m di fondo (Equa: 34-42 m) — e' con
+// ogni probabilita' lo stesso relitto, registrato senza nome nel database UKHO.
+export const EXCLUDED_WRECK_IDS = new Set(['36169'])
+
 export type WreckInterest = { level: 'alto' | 'medio' | 'basso' | 'assente'; reason: string }
 
 /** Interesse per la pesca — STIMA da regole semplici, non un dato misurato:

@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
 import { depthAt, loadDepthGrid } from '../utils/depthGrid'
-import { EXTRA_WRECKS, INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
+import { EXCLUDED_WRECK_IDS, EXTRA_WRECKS, INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
 import { bearingDegrees, compassLabel, distanceMeters } from '../utils/geo'
 import { usePois } from '../hooks/usePois'
 import type { PoiType } from '../types/poi'
@@ -183,7 +183,7 @@ export default function MapView() {
       .catch(() => setSpeciesList([]))
     fetch(withCacheBust('/data/relitti_ukho.geojson'))
       .then((r) => r.json())
-      .then((data: WreckCollection) => setWrecks([...data.features, ...EXTRA_WRECKS]))
+      .then((data: WreckCollection) => setWrecks([...data.features.filter((f) => !EXCLUDED_WRECK_IDS.has(f.properties.wreck_id)), ...EXTRA_WRECKS]))
       .catch(() => setWrecks([...EXTRA_WRECKS]))
     fetch(withCacheBust('/data/real_shoals.geojson'))
       .then((r) => r.json())
