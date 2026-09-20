@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 from functools import lru_cache
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import numpy as np
 
@@ -50,7 +50,9 @@ def _fetch_json(url: str, params: dict) -> dict:
         proxy_path = PROXY_PATHS.get(url)
         if proxy_path is None:
             raise
-        with urlopen(f"{PROXY_BASE}{proxy_path}?{query}", timeout=15) as resp:
+        # Cloudflare rifiuta (403) lo user-agent predefinito di Python-urllib.
+        req = Request(f"{PROXY_BASE}{proxy_path}?{query}", headers={"User-Agent": "Pesca5Terre-backend/1.0"})
+        with urlopen(req, timeout=15) as resp:
             return json.load(resp)
 
 
