@@ -59,6 +59,24 @@
   color: #555;
 }
 
+.layer-other-toggle {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font: inherit;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+  text-align: left;
+}
+
+.layer-other {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 12px;
+}
+
 .layer-toggle {
   display: flex;
   align-items: center;

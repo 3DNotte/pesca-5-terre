@@ -165,6 +165,7 @@ export default function MapView() {
   const hillshadeDetailLayerIdsRef = useRef<string[]>([])
 
   const [legendCollapsed, setLegendCollapsed] = useState(false)
+  const [otherOpen, setOtherOpen] = useState(false)
 
   const { pois, addPoi, removePoi } = usePois()
 
@@ -1138,24 +1139,6 @@ export default function MapView() {
             <label className="layer-toggle">
               <input
                 type="checkbox"
-                checked={ampVisible}
-                onChange={(e) => setAmpVisible(e.target.checked)}
-              />
-              Zone AMP A/B
-            </label>
-
-            <label className="layer-toggle">
-              <input
-                type="checkbox"
-                checked={ferryVisible}
-                onChange={(e) => setFerryVisible(e.target.checked)}
-              />
-              Rotta traghetti
-            </label>
-
-            <label className="layer-toggle">
-              <input
-                type="checkbox"
                 checked={wrecksVisible}
                 onChange={(e) => setWrecksVisible(e.target.checked)}
               />
@@ -1186,6 +1169,36 @@ export default function MapView() {
               />
               Catture
             </label>
+
+            <button
+              type="button"
+              className="layer-other-toggle"
+              onClick={() => setOtherOpen((v) => !v)}
+              aria-expanded={otherOpen}
+            >
+              Altro {otherOpen ? '▴' : '▾'}
+            </button>
+            {otherOpen && (
+              <div className="layer-other">
+              <label className="layer-toggle">
+                <input
+                  type="checkbox"
+                  checked={ampVisible}
+                  onChange={(e) => setAmpVisible(e.target.checked)}
+                />
+                Zone AMP A/B
+              </label>
+
+              <label className="layer-toggle">
+                <input
+                  type="checkbox"
+                  checked={ferryVisible}
+                  onChange={(e) => setFerryVisible(e.target.checked)}
+                />
+                Rotta traghetti
+              </label>
+              </div>
+            )}
 
             <button
               type="button"
