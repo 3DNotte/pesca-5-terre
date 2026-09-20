@@ -2,6 +2,8 @@
 // contiene dimensioni: qui ci sono SOLO i dati trovati in fonti verificabili
 // (siti di immersione/storia navale). Per gli altri relitti la dimensione
 // resta "non disponibile": non si stima a occhio.
+import type { WreckFeature } from '../types/wreck'
+
 export interface WreckExtra {
   lengthM?: number
   beamM?: number
@@ -11,6 +13,10 @@ export interface WreckExtra {
 }
 
 export const WRECK_EXTRA: Record<string, WreckExtra> = {
+  equa: {
+    note: 'Affondata il 10 giugno 1944 a circa 2 miglia da Riomaggiore, tra 34 e 42 m: descritta in perfetto assetto di navigazione, col cannone puntato in avanti. Reti da pesca impigliate sulla struttura; cernie e aragoste tra le lamiere.',
+    sources: 'dailynautica.com',
+  },
   '36166': {
     lengthM: 87,
     beamM: 12.5,
@@ -19,6 +25,26 @@ export const WRECK_EXTRA: Record<string, WreckExtra> = {
     sources: 'relittiliguria.it, Diving Group Portofino',
   },
 }
+
+// Relitti NON presenti nel database UKHO, aggiunti a mano con posizione
+// fornita dall'utente (39,6 m di fondale alla posizione sulla batimetria).
+export const EXTRA_WRECKS: WreckFeature[] = [
+  {
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [9 + 45 / 60 + 3 / 3600, 44 + 3 / 60 + 40 / 3600] },
+    properties: {
+      wreck_id: 'equa',
+      name: 'Equa',
+      category: 'Non-dangerous wreck',
+      vessel_type: 'motovedetta armata (ex cargo)',
+      depth_m: 38,
+      year_sunk: '1944',
+      removed: false,
+      circumstance: null,
+      source: 'Posizione fornita dall’utente; dati: dailynautica.com',
+    },
+  },
+]
 
 export type WreckInterest = { level: 'alto' | 'medio' | 'basso' | 'assente'; reason: string }
 

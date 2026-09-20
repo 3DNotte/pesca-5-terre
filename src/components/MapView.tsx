@@ -3,7 +3,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
-import { INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
+import { EXTRA_WRECKS, INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
 import { bearingDegrees, compassLabel, distanceMeters } from '../utils/geo'
 import { usePois } from '../hooks/usePois'
 import type { PoiType } from '../types/poi'
@@ -174,8 +174,8 @@ export default function MapView() {
       .catch(() => setSpeciesList([]))
     fetch(withCacheBust('/data/relitti_ukho.geojson'))
       .then((r) => r.json())
-      .then((data: WreckCollection) => setWrecks(data.features))
-      .catch(() => setWrecks([]))
+      .then((data: WreckCollection) => setWrecks([...data.features, ...EXTRA_WRECKS]))
+      .catch(() => setWrecks([...EXTRA_WRECKS]))
     fetch(withCacheBust('/data/real_shoals.geojson'))
       .then((r) => r.json())
       .then((data: RealShoalCollection) => setRealShoals(data.features))
@@ -655,7 +655,7 @@ export default function MapView() {
       const interest = wreckInterest(p.depth_m, p.removed, extraInfo)
       const sizeLine = extraInfo?.lengthM
         ? `${extraInfo.lengthM}${extraInfo.beamM ? ` × ${String(extraInfo.beamM).replace(".", ",")}` : ''} m${extraInfo.tonnage ? ` · ${extraInfo.tonnage}` : ''}`
-        : 'non disponibili (dato assente nel database UKHO)'
+        : 'non disponibili'
       popupContainer.innerHTML = `
         <strong>${title}</strong><br/>
         ${mainDetails || 'Dettagli non disponibili'}
