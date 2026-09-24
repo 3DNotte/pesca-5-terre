@@ -68,6 +68,8 @@ const SCORE_LAYER_ID = 'predictive-score-layer'
 
 const MY_POSITION_ACCURACY_SOURCE_ID = 'my-position-accuracy'
 const MY_POSITION_ACCURACY_LAYER_ID = 'my-position-accuracy-layer'
+const NAV_LINE_SOURCE_ID = 'nav-live-lines'
+const NAV_LINE_LAYER_ID = 'nav-live-lines-layer'
 
 const ISOBATHS_SOURCE_ID = 'isobaths'
 const ISOBATHS_LINE_LAYER_ID = 'isobaths-line'
@@ -285,6 +287,14 @@ export default function MapView() {
         type: 'fill',
         source: MY_POSITION_ACCURACY_SOURCE_ID,
         paint: { 'fill-color': '#0b6bcb', 'fill-opacity': 0.12 },
+      })
+
+      map.addSource(NAV_LINE_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+      map.addLayer({
+        id: NAV_LINE_LAYER_ID,
+        type: 'line',
+        source: NAV_LINE_SOURCE_ID,
+        paint: { 'line-color': '#e65100', 'line-width': 2.5, 'line-dasharray': [2, 1.5] },
       })
 
       // Attribuzioni obbligatorie (licenze) ma ripiegate dietro l'icona ⓘ: MapLibre
@@ -1032,9 +1042,14 @@ export default function MapView() {
   useEffect(() => {
     const updateLive = () => {
       const here = liveNavPosition.current
+      const map = mapRef.current
 
-      // Popup "Naviga qui" aperti in questo momento.
+      // Popup "Naviga qui" aperti in questo momento: testo distanza/rotta E
+      // una linea tracciata sulla mappa stessa dal pallino al punto — la
+      // vera utilita' di questo popup rispetto al solo pallino "sono qui":
+      // sopra la carta nautica dell'app (fondali, secche), non su Google Maps.
       const els = document.querySelectorAll<HTMLElement>('.nav-live')
+      const lineFeatures: GeoJSON.Feature<GeoJSON.LineString>[] = []
       for (const el of els) {
         const lat = Number(el.dataset.lat)
         const lon = Number(el.dataset.lon)
@@ -1046,10 +1061,20 @@ export default function MapView() {
         const brg = bearingDegrees(here, [lon, lat])
         const distStr = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`
         el.textContent = `📍 ${distStr} · rotta ${Math.round(brg)}° (${compassLabel(brg)})`
+        lineFeatures.push({
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: [here, [lon, lat]] },
+        })
+      }
+      if (map?.getSource(NAV_LINE_SOURCE_ID)) {
+        ;(map.getSource(NAV_LINE_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+          type: 'FeatureCollection',
+          features: lineFeatures,
+        })
       }
 
       // Marker "La mia posizione" sulla mappa.
-      const map = mapRef.current
       if (!map) return
       if (!here || !myPositionVisible) {
         myPositionMarkerRef.current?.remove()
