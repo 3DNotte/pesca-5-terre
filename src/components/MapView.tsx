@@ -5,7 +5,7 @@ import '../utils/maplibreWorker'
 import { AREA_BOUNDS, AREA_CENTER, DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from '../config/area'
 import { depthAt, loadDepthGrid } from '../utils/depthGrid'
 import { EXCLUDED_WRECK_IDS, EXTRA_WRECKS, INTEREST_LABEL, WRECK_EXTRA, wreckInterest } from '../config/wreckInfo'
-import { bearingDegrees, compassLabel, distanceMeters } from '../utils/geo'
+import { bearingDegrees, circlePolygon, compassLabel, distanceMeters } from '../utils/geo'
 import { usePois } from '../hooks/usePois'
 import type { PoiType } from '../types/poi'
 import { POI_TYPE_LABELS } from '../types/poi'
@@ -65,6 +65,9 @@ const SHOAL_COLORS = { low: '#2e9b3a', mid: '#f2b705', high: '#c62828' }
 
 const SCORE_SOURCE_ID = 'predictive-score'
 const SCORE_LAYER_ID = 'predictive-score-layer'
+
+const MY_POSITION_ACCURACY_SOURCE_ID = 'my-position-accuracy'
+const MY_POSITION_ACCURACY_LAYER_ID = 'my-position-accuracy-layer'
 
 const ISOBATHS_SOURCE_ID = 'isobaths'
 const ISOBATHS_LINE_LAYER_ID = 'isobaths-line'
@@ -174,6 +177,7 @@ export default function MapView() {
 
   const [legendCollapsed, setLegendCollapsed] = useState(false)
   const [otherOpen, setOtherOpen] = useState(false)
+  const [myPositionVisible, setMyPositionVisible] = useState(true)
   const [depthGrid, setDepthGrid] = useState<Awaited<ReturnType<typeof loadDepthGrid>>>(null)
 
   const { pois, addPoi, removePoi } = usePois()
@@ -272,6 +276,17 @@ export default function MapView() {
     })
 
     map.on('load', () => {
+      map.addSource(MY_POSITION_ACCURACY_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+      map.addLayer({
+        id: MY_POSITION_ACCURACY_LAYER_ID,
+        type: 'fill',
+        source: MY_POSITION_ACCURACY_SOURCE_ID,
+        paint: { 'fill-color': '#0b6bcb', 'fill-opacity': 0.12 },
+      })
+
       // Attribuzioni obbligatorie (licenze) ma ripiegate dietro l'icona ⓘ: MapLibre
       // le lascia aperte su schermi larghi.
       map.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
@@ -986,34 +1001,40 @@ export default function MapView() {
     }
   }, [catches, catchesVisible, updateCatch, removeCatch])
 
-  // Distanza/rotta live nei popup ("Naviga qui" -> navigateLinkHtml): niente
-  // bussola grafica (il magnetometro del telefono in barca, vicino a motore e
-  // scafo metallico, e' inaffidabile) — solo distanza e rotta in gradi, come
-  // il "vai al waypoint" di un GPS da barca. Il GPS parte solo alla prima
-  // apertura di un popup con questo dato (non subito al caricamento pagina),
-  // rilevato passivamente controllando se esiste gia' un elemento .nav-live
-  // nel DOM: i popup di MapLibre esistono nel DOM solo mentre sono aperti.
-  const liveNavWatchId = useRef<number | null>(null)
+  // Posizione GPS del telefono: UN SOLO watchPosition, sempre attivo mentre
+  // l'app e' aperta (non solo quando serve, come prima) — alimenta sia il
+  // marker "La mia posizione" sulla mappa sia la distanza/rotta live nei
+  // popup ("Naviga qui" -> navigateLinkHtml). Niente bussola grafica (il
+  // magnetometro del telefono in barca, vicino a motore e scafo metallico,
+  // e' inaffidabile): solo distanza e rotta in gradi, come il "vai al
+  // waypoint" di un GPS da barca.
   const liveNavPosition = useRef<[number, number] | null>(null) // [lon, lat]
+  const liveNavAccuracy = useRef<number | null>(null) // metri (accuracy del GPS)
+  const myPositionMarkerRef = useRef<maplibregl.Marker | null>(null)
+  const myPositionMarkerAddedRef = useRef(false)
 
   useEffect(() => {
-    const updateLiveNavElements = () => {
-      const els = document.querySelectorAll<HTMLElement>('.nav-live')
-      if (els.length === 0) return
+    if (!('geolocation' in navigator)) return
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
+        liveNavAccuracy.current = pos.coords.accuracy ?? null
+      },
+      () => {
+        liveNavPosition.current = null
+        liveNavAccuracy.current = null
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 },
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [])
 
-      if (liveNavWatchId.current == null && 'geolocation' in navigator) {
-        liveNavWatchId.current = navigator.geolocation.watchPosition(
-          (pos) => {
-            liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
-          },
-          () => {
-            liveNavPosition.current = null
-          },
-          { enableHighAccuracy: true, maximumAge: 5000 },
-        )
-      }
-
+  useEffect(() => {
+    const updateLive = () => {
       const here = liveNavPosition.current
+
+      // Popup "Naviga qui" aperti in questo momento.
+      const els = document.querySelectorAll<HTMLElement>('.nav-live')
       for (const el of els) {
         const lat = Number(el.dataset.lat)
         const lon = Number(el.dataset.lon)
@@ -1026,17 +1047,45 @@ export default function MapView() {
         const distStr = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`
         el.textContent = `📍 ${distStr} · rotta ${Math.round(brg)}° (${compassLabel(brg)})`
       }
-    }
 
-    const interval = setInterval(updateLiveNavElements, 2000)
-    return () => {
-      clearInterval(interval)
-      if (liveNavWatchId.current != null) {
-        navigator.geolocation.clearWatch(liveNavWatchId.current)
-        liveNavWatchId.current = null
+      // Marker "La mia posizione" sulla mappa.
+      const map = mapRef.current
+      if (!map) return
+      if (!here || !myPositionVisible) {
+        myPositionMarkerRef.current?.remove()
+        myPositionMarkerRef.current = null
+        if (myPositionMarkerAddedRef.current && map.getSource(MY_POSITION_ACCURACY_SOURCE_ID)) {
+          ;(map.getSource(MY_POSITION_ACCURACY_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: [],
+          })
+        }
+        return
+      }
+      if (!myPositionMarkerRef.current) {
+        const el = document.createElement('div')
+        el.className = 'my-position-marker'
+        el.innerHTML = '<div class="my-position-dot"></div><div class="my-position-pulse"></div>'
+        myPositionMarkerRef.current = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat(here)
+          .addTo(map)
+      } else {
+        myPositionMarkerRef.current.setLngLat(here)
+      }
+      const accuracy = liveNavAccuracy.current
+      if (map.getSource(MY_POSITION_ACCURACY_SOURCE_ID)) {
+        myPositionMarkerAddedRef.current = true
+        ;(map.getSource(MY_POSITION_ACCURACY_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+          type: 'FeatureCollection',
+          features: accuracy && accuracy > 15 ? [circlePolygon(here, accuracy)] : [],
+        })
       }
     }
-  }, [])
+
+    const interval = setInterval(updateLive, 2000)
+    updateLive()
+    return () => clearInterval(interval)
+  }, [myPositionVisible])
 
   // Cattura al volo: posizione GPS del telefono in questo istante, non un
   // punto scelto sulla mappa — pensato per essere usato in un secondo con le
@@ -1189,6 +1238,15 @@ export default function MapView() {
                 </div>
               </>
             )}
+
+            <label className="layer-toggle">
+              <input
+                type="checkbox"
+                checked={myPositionVisible}
+                onChange={(e) => setMyPositionVisible(e.target.checked)}
+              />
+              La mia posizione
+            </label>
 
             <label className="layer-toggle">
               <input
