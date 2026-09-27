@@ -109,13 +109,16 @@ function withCacheBust(path: string): string {
 
 // Distanza e rotta live per i popup, calcolate in JS dal GPS del telefono
 // senza uscire dall'app (vedi useEffect "Distanza/rotta live" piu' sotto, che
-// aggiorna periodicamente ogni elemento .nav-live presente nel DOM). Il link
-// a Google Maps resta come opzione secondaria per la navigazione vera e propria.
+// aggiorna periodicamente ogni elemento .nav-live presente nel DOM). "Ti
+// porto lì" resta in app: niente piu' rimando a Google Maps, che in mare non
+// conosce ne' fondali ne' secche (su richiesta diretta dell'utente, dopo
+// prova in mare: il rimando esterno era scomodo). Il bottone e' gestito con
+// un solo listener delegato sul documento (vedi useEffect "Ti porto lì"),
+// non uno per popup: i popup sono ricreati in innerHTML in piu' punti.
 function navigateLinkHtml(lat: number, lon: number): string {
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
   return `
     <div class="poi-popup-navlive nav-live" data-lat="${lat}" data-lon="${lon}">📍 in attesa GPS…</div>
-    <a class="poi-popup-navigate" href="${url}" target="_blank" rel="noopener noreferrer">Apri in Google Maps</a>
+    <button type="button" class="poi-popup-navigate nav-fly-to" data-lat="${lat}" data-lon="${lon}">🧭 Ti porto lì</button>
   `
 }
 
@@ -1111,6 +1114,33 @@ export default function MapView() {
     updateLive()
     return () => clearInterval(interval)
   }, [myPositionVisible])
+
+  // "Ti porto lì": inquadra sulla mappa te e il punto, invece di uscire
+  // dall'app verso Google Maps. Un solo listener delegato (i bottoni sono
+  // ricreati in innerHTML ad ogni apertura di popup, uno per callsite non
+  // avrebbe senso da ricollegare ogni volta).
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>('.nav-fly-to')
+      if (!btn) return
+      const map = mapRef.current
+      if (!map) return
+      const lat = Number(btn.dataset.lat)
+      const lon = Number(btn.dataset.lon)
+      const here = liveNavPosition.current
+      if (here) {
+        const bounds = new maplibregl.LngLatBounds()
+        bounds.extend(here)
+        bounds.extend([lon, lat])
+        map.fitBounds(bounds, { padding: 90, maxZoom: 16, duration: 800 })
+      } else {
+        // Nessun GPS ancora: porta comunque sul punto, non lasciare il bottone senza effetto.
+        map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 14), duration: 800 })
+      }
+    }
+    document.addEventListener('click', onClick)
+    return () => document.removeEventListener('click', onClick)
+  }, [])
 
   // Cattura al volo: posizione GPS del telefono in questo istante, non un
   // punto scelto sulla mappa — pensato per essere usato in un secondo con le
