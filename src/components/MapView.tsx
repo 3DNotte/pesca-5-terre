@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import '../utils/maplibreWorker'
@@ -35,6 +35,8 @@ import { imageCoordinates, scoreGridToDataUrl } from '../utils/heatmap'
 import { colorForClassification, fishIconSvg } from '../utils/fishIcon'
 import WizardPanel from './WizardPanel'
 import MeteoWidget from './MeteoWidget'
+import DevSimPanel from './DevSimPanel'
+import { isDevMode } from '../utils/devMode'
 import './MapView.css'
 
 const BASEMAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
@@ -149,6 +151,15 @@ export default function MapView() {
   const [poiVisible] = useState(true)
   const [ferryVisible, setFerryVisible] = useState(false) // "Altro": spento all'avvio
   const [addPoiMode, setAddPoiMode] = useState(false)
+
+  // Strumento di SVILUPPO (vedi DevSimPanel/utils/devMode.ts): quando attivo,
+  // il GPS reale viene ignorato e liveNavPosition e' pilotata a mano — cosi'
+  // tutto il resto (marker, linea, "Ti porto li'") non sa la differenza e non
+  // va toccato per testare da PC senza andare in mare.
+  const devMode = useMemo(() => isDevMode(), [])
+  const simActiveRef = useRef(false)
+  const [simActive, setSimActive] = useState(false)
+  const [simCoords, setSimCoords] = useState<[number, number] | null>(null)
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
   const [sessionFeedbackOpen, setSessionFeedbackOpen] = useState(false)
   const { addFeedback } = useSessionFeedback()
@@ -246,9 +257,9 @@ export default function MapView() {
   useEffect(() => {
     addPoiModeRef.current = addPoiMode
     if (containerRef.current) {
-      containerRef.current.style.cursor = addPoiMode ? 'crosshair' : ''
+      containerRef.current.style.cursor = addPoiMode || simActive ? 'crosshair' : ''
     }
-  }, [addPoiMode])
+  }, [addPoiMode, simActive])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -277,6 +288,8 @@ export default function MapView() {
     map.on('click', (e) => {
       if (addPoiModeRef.current) {
         setPendingCoords([e.lngLat.lng, e.lngLat.lat])
+      } else if (simActiveRef.current) {
+        setSimulatedPosition([e.lngLat.lng, e.lngLat.lat])
       }
     })
 
@@ -1027,13 +1040,37 @@ export default function MapView() {
   const myPositionMarkerAddedRef = useRef(false)
 
   useEffect(() => {
+    simActiveRef.current = simActive
+    if (!simActive) {
+      setSimCoords(null)
+      liveNavPosition.current = null
+      liveNavAccuracy.current = null
+    }
+  }, [simActive])
+
+  const setSimulatedPosition = (coords: [number, number]) => {
+    liveNavPosition.current = coords
+    liveNavAccuracy.current = 8
+    setSimCoords(coords)
+  }
+
+  const nudgeSimulatedPosition = (dLatM: number, dLonM: number) => {
+    const base = simCoords ?? AREA_CENTER
+    const dLat = dLatM / 111_320
+    const dLon = dLonM / (111_320 * Math.cos((base[1] * Math.PI) / 180))
+    setSimulatedPosition([base[0] + dLon, base[1] + dLat])
+  }
+
+  useEffect(() => {
     if (!('geolocation' in navigator)) return
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
+        if (simActiveRef.current) return // il GPS reale non deve scavalcare la simulazione
         liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
         liveNavAccuracy.current = pos.coords.accuracy ?? null
       },
       () => {
+        if (simActiveRef.current) return
         liveNavPosition.current = null
         liveNavAccuracy.current = null
       },
@@ -1100,6 +1137,8 @@ export default function MapView() {
       } else {
         myPositionMarkerRef.current.setLngLat(here)
       }
+      // Colore diverso quando e' una posizione simulata (dev), per non confonderla mai con un GPS vero.
+      myPositionMarkerRef.current.getElement().classList.toggle('my-position-marker--sim', simActive)
       const accuracy = liveNavAccuracy.current
       if (map.getSource(MY_POSITION_ACCURACY_SOURCE_ID)) {
         myPositionMarkerAddedRef.current = true
@@ -1110,10 +1149,12 @@ export default function MapView() {
       }
     }
 
-    const interval = setInterval(updateLive, 2000)
+    // In simulazione l'intervallo e' piu' corto: si sta testando a mano,
+    // aspettare 2s per vedere l'effetto di ogni click sarebbe scomodo.
+    const interval = setInterval(updateLive, simActive ? 400 : 2000)
     updateLive()
     return () => clearInterval(interval)
-  }, [myPositionVisible])
+  }, [myPositionVisible, simActive])
 
   // "Ti porto lì": inquadra sulla mappa te e il punto, invece di uscire
   // dall'app verso Google Maps. Un solo listener delegato (i bottoni sono
@@ -1252,6 +1293,15 @@ export default function MapView() {
       )}
 
       <MeteoWidget />
+
+      {devMode && (
+        <DevSimPanel
+          active={simActive}
+          onToggleActive={() => setSimActive((v) => !v)}
+          coords={simCoords}
+          onNudge={nudgeSimulatedPosition}
+        />
+      )}
 
       <WizardPanel
         open={wizardOpen}

@@ -427,3 +427,7 @@
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
   100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
 }
+
+/* Posizione SIMULATA (strumento di sviluppo): arancione, mai confondibile con il GPS vero (blu). */
+.my-position-marker--sim .my-position-dot { background: #e65100; }
+.my-position-marker--sim .my-position-pulse { background: rgba(230, 81, 0, 0.35); }
