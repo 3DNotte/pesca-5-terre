@@ -15,6 +15,7 @@ const GEAR_OPTIONS: { key: string; label: string }[] = [
 // Dall'esca trovata al chip "Che esche hai?" della modalità predatori.
 const BAIT_KEY_TO_LABEL: Record<string, string> = {
   sugherello: 'Sugherello',
+  tombarello: 'Tombarello',
   aguglia: 'Aguglia',
   occhiata: 'Occhiata',
   cefalopodi: 'Cefalopodi',

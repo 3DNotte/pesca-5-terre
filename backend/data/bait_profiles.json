@@ -62,5 +62,21 @@
     "depth_range_m": [2, 60],
     "gear_fit": {"trainetta": 0.5, "bolentino": 0.4, "sabiki": 0.3},
     "notes": "Loligo vulgaris e Sepia officinalis. Il calamaro si sposta di notte su aree piu' ampie che di giorno (tracciamento, Movement patterns of Loligo vulgaris during the inshore spawning season); nel Mediterraneo occidentale i piu' grandi arrivano sotto costa gia' a gennaio-febbraio, i piccoli in estate; riproduzione per gran parte dell'anno con picchi a inizio estate e inizio autunno, deposizione tra 2 e 120 m. Per il Mar Ligure le fonti divulgative indicano il periodo ottobre-marzo, di notte e con luce (La Spezia). I cefalopodi NON si prendono con sabiki, trainetta o bolentino ma con totanare/egi: per questo l'attrezzo pesa poco nel punteggio e l'app lo segnala. Stagionalita' e fasce orarie sono STIME da queste fonti."
+  },
+  "tombarello": {
+    "label": "Tombarello",
+    "kind": "bait",
+    "seasonality_by_month": [0.15, 0.15, 0.25, 0.5, 0.75, 1.0, 1.0, 1.0, 0.9, 0.55, 0.25, 0.15],
+    "hourly_bands": [
+      {"start": 6, "end": 10, "score": 1.0},
+      {"start": 10, "end": 17, "score": 0.6},
+      {"start": 17, "end": 20, "score": 0.9},
+      {"start": 20, "end": 6, "score": 0.2}
+    ],
+    "disturbance_sensitivity": 0.4,
+    "structure_affinity": 0.15,
+    "depth_range_m": [0, 60],
+    "gear_fit": {"trainetta": 1.0, "sabiki": 0.2, "bolentino": 0.15},
+    "notes": "Auxis rochei. Specie pelagica gregaria, forma grandi banchi (FishBase, uh.app): vive dalla superficie fino a 200 m, ma d'estate risale in superficie e si avvicina alla costa, d'inverno si ritira in profondita' al largo (uh.app, sintesi FishBase). Si riproduce da aprile a settembre nel Mediterraneo, con picco giugno-settembre quando l'acqua e' piu' calda (studio riproduttivo sul Mediterraneo sud-occidentale, ResearchGate). Predatore veloce e vorace, cacciante in superficie: le fonti di pesca pratica lo danno soprattutto a traina leggera con piume/ondulanti, poco adatto a sabiki o bolentino (pescaalmare.altervista.org, demonocchiali.it — non e' letteratura scientifica, solo pratica diffusa). Il range di profondita' 0-60 m e' ristretto rispetto ai 200 m di FishBase per riflettere l'uso sottocosta stagionale (estate) di questa app, non un limite biologico. Fasce orarie, sensibilita' al disturbo e affinita' di struttura sono STIME da pratica di pesca: nessuna fonte scientifica trovata su questi aspetti nel Mar Ligure."
   }
 }
