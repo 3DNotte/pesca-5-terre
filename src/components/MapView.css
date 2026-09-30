@@ -211,6 +211,15 @@
   background: #0d5bc4;
 }
 
+/* Navigazione attiva verso questo punto: stesso rosso della linea sulla mappa. */
+.poi-popup-navigate.nav-fly-to-active {
+  background: #c62828;
+}
+
+.poi-popup-navigate.nav-fly-to-active:hover {
+  background: #a41f1f;
+}
+
 .wreck-marker {
   width: 24px;
   height: 24px;

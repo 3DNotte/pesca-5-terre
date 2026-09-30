@@ -109,19 +109,35 @@ function withCacheBust(path: string): string {
   return `${path}?v=${DATA_CACHE_BUST}`
 }
 
-// Distanza e rotta live per i popup, calcolate in JS dal GPS del telefono
-// senza uscire dall'app (vedi useEffect "Distanza/rotta live" piu' sotto, che
-// aggiorna periodicamente ogni elemento .nav-live presente nel DOM). "Ti
-// porto lì" resta in app: niente piu' rimando a Google Maps, che in mare non
-// conosce ne' fondali ne' secche (su richiesta diretta dell'utente, dopo
-// prova in mare: il rimando esterno era scomodo). Il bottone e' gestito con
-// un solo listener delegato sul documento (vedi useEffect "Ti porto lì"),
-// non uno per popup: i popup sono ricreati in innerHTML in piu' punti.
+// Distanza, rotta e tempo stimato live per i popup, calcolati in JS dal GPS
+// del telefono senza uscire dall'app (vedi useEffect "Distanza/rotta live"
+// piu' sotto, che aggiorna periodicamente ogni elemento .nav-live presente
+// nel DOM). "Naviga fino qui" resta in app: niente rimando a Google Maps, che
+// in mare non conosce ne' fondali ne' secche (su richiesta diretta
+// dell'utente, dopo prova in mare). Il bottone e' gestito con un solo
+// listener delegato sul documento (vedi useEffect "Naviga fino qui"), non uno
+// per popup: i popup sono ricreati in innerHTML in piu' punti.
 function navigateLinkHtml(lat: number, lon: number): string {
   return `
     <div class="poi-popup-navlive nav-live" data-lat="${lat}" data-lon="${lon}">📍 in attesa GPS…</div>
-    <button type="button" class="poi-popup-navigate nav-fly-to" data-lat="${lat}" data-lon="${lon}">🧭 Ti porto lì</button>
+    <button type="button" class="poi-popup-navigate nav-fly-to" data-lat="${lat}" data-lon="${lon}">🧭 Naviga fino qui</button>
   `
+}
+
+// Tempo stimato: se il GPS da' una velocita' reale e sensata (in movimento,
+// non fermi/deriva) la si usa; altrimenti si assume un'andatura tipica da
+// piccola barca da pesca (5 nodi) e lo si segnala in chiaro nel title
+// dell'elemento, mai spacciato per un dato misurato.
+const ASSUMED_BOAT_SPEED_MS = 2.57 // 5 nodi
+const MIN_REAL_SPEED_MS = 0.5 // sotto, e' deriva/rumore GPS, non "andare verso"
+
+function formatEta(distanceM: number, speedMs: number): string {
+  if (distanceM < 15) return 'sei arrivato'
+  const seconds = distanceM / speedMs
+  if (seconds < 3600) return `~${Math.max(1, Math.round(seconds / 60))} min`
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.round((seconds % 3600) / 60)
+  return `~${hours}h${minutes > 0 ? ` ${minutes}min` : ''}`
 }
 
 function blankTransparentPixel(): string {
@@ -310,7 +326,9 @@ export default function MapView() {
         id: NAV_LINE_LAYER_ID,
         type: 'line',
         source: NAV_LINE_SOURCE_ID,
-        paint: { 'line-color': '#e65100', 'line-width': 2.5, 'line-dasharray': [2, 1.5] },
+        // Rosso a trattini, stesso rosso "importante" usato per punteggio e
+        // secche alte: una sola linea, quella del target attivo di "Naviga fino qui".
+        paint: { 'line-color': '#c62828', 'line-width': 3, 'line-dasharray': [2, 1.5] },
       })
 
       // Attribuzioni obbligatorie (licenze) ma ripiegate dietro l'icona ⓘ: MapLibre
@@ -1036,8 +1054,12 @@ export default function MapView() {
   // waypoint" di un GPS da barca.
   const liveNavPosition = useRef<[number, number] | null>(null) // [lon, lat]
   const liveNavAccuracy = useRef<number | null>(null) // metri (accuracy del GPS)
+  const liveNavSpeed = useRef<number | null>(null) // m/s, dal GPS (coords.speed) — null se fermi o non disponibile
   const myPositionMarkerRef = useRef<maplibregl.Marker | null>(null)
   const myPositionMarkerAddedRef = useRef(false)
+  // Punto verso cui e' attiva la navigazione ("Naviga fino qui"): un solo
+  // target alla volta, e' quello che disegna la linea rossa sulla mappa.
+  const navTargetRef = useRef<{ lat: number; lon: number; key: string } | null>(null)
 
   useEffect(() => {
     simActiveRef.current = simActive
@@ -1045,6 +1067,7 @@ export default function MapView() {
       setSimCoords(null)
       liveNavPosition.current = null
       liveNavAccuracy.current = null
+      liveNavSpeed.current = null
     }
   }, [simActive])
 
@@ -1068,11 +1091,16 @@ export default function MapView() {
         if (simActiveRef.current) return // il GPS reale non deve scavalcare la simulazione
         liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
         liveNavAccuracy.current = pos.coords.accuracy ?? null
+        // coords.speed e' velocita' SOG dal ricevitore GPS (m/s): a differenza
+        // della bussola magnetica, e' affidabile anche vicino al motore/scafo
+        // metallico. null se il telefono non la fornisce o non ci si muove abbastanza.
+        liveNavSpeed.current = pos.coords.speed ?? null
       },
       () => {
         if (simActiveRef.current) return
         liveNavPosition.current = null
         liveNavAccuracy.current = null
+        liveNavSpeed.current = null
       },
       { enableHighAccuracy: true, maximumAge: 5000 },
     )
@@ -1084,12 +1112,13 @@ export default function MapView() {
       const here = liveNavPosition.current
       const map = mapRef.current
 
-      // Popup "Naviga qui" aperti in questo momento: testo distanza/rotta E
-      // una linea tracciata sulla mappa stessa dal pallino al punto — la
-      // vera utilita' di questo popup rispetto al solo pallino "sono qui":
-      // sopra la carta nautica dell'app (fondali, secche), non su Google Maps.
+      // Popup "Naviga qui" aperti in questo momento: testo distanza/rotta/tempo
+      // stimato per ognuno; la linea rossa invece va solo verso il target
+      // ATTIVO di "Naviga fino qui" (navTargetRef) — un click esplicito, non
+      // ogni popup aperto, cosi' non si affolla la mappa.
       const els = document.querySelectorAll<HTMLElement>('.nav-live')
-      const lineFeatures: GeoJSON.Feature<GeoJSON.LineString>[] = []
+      const speed = liveNavSpeed.current
+      const useRealSpeed = speed != null && speed >= MIN_REAL_SPEED_MS
       for (const el of els) {
         const lat = Number(el.dataset.lat)
         const lon = Number(el.dataset.lon)
@@ -1100,17 +1129,38 @@ export default function MapView() {
         const dist = distanceMeters(here, [lon, lat])
         const brg = bearingDegrees(here, [lon, lat])
         const distStr = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`
-        el.textContent = `📍 ${distStr} · rotta ${Math.round(brg)}° (${compassLabel(brg)})`
-        lineFeatures.push({
-          type: 'Feature',
-          properties: {},
-          geometry: { type: 'LineString', coordinates: [here, [lon, lat]] },
-        })
+        const eta = formatEta(dist, useRealSpeed ? speed : ASSUMED_BOAT_SPEED_MS)
+        el.textContent = `📍 ${distStr} · rotta ${Math.round(brg)}° (${compassLabel(brg)}) · ${eta}`
+        el.title = useRealSpeed
+          ? `Tempo stimato alla tua velocità attuale (${(speed * 1.94384).toFixed(1)} kn)`
+          : "Tempo stimato assumendo 5 nodi (nessuna velocità GPS attuale): può essere impreciso"
       }
+
+      // Bottoni "Naviga fino qui": mostrano se sono il target attivo, per
+      // poter fermare la navigazione ricliccando lo stesso bottone.
+      const flyBtns = document.querySelectorAll<HTMLElement>('.nav-fly-to')
+      for (const btn of flyBtns) {
+        const key = `${btn.dataset.lat},${btn.dataset.lon}`
+        const isActive = navTargetRef.current?.key === key
+        btn.textContent = isActive ? '⏹ Ferma navigazione' : '🧭 Naviga fino qui'
+        btn.classList.toggle('nav-fly-to-active', isActive)
+      }
+
       if (map?.getSource(NAV_LINE_SOURCE_ID)) {
+        const target = navTargetRef.current
+        const features: GeoJSON.Feature<GeoJSON.LineString>[] =
+          here && target
+            ? [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: { type: 'LineString', coordinates: [here, [target.lon, target.lat]] },
+                },
+              ]
+            : []
         ;(map.getSource(NAV_LINE_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
           type: 'FeatureCollection',
-          features: lineFeatures,
+          features,
         })
       }
 
@@ -1156,10 +1206,12 @@ export default function MapView() {
     return () => clearInterval(interval)
   }, [myPositionVisible, simActive])
 
-  // "Ti porto lì": inquadra sulla mappa te e il punto, invece di uscire
-  // dall'app verso Google Maps. Un solo listener delegato (i bottoni sono
-  // ricreati in innerHTML ad ogni apertura di popup, uno per callsite non
-  // avrebbe senso da ricollegare ogni volta).
+  // "Naviga fino qui": avvia (o ferma, se gia' attivo) la navigazione verso
+  // questo punto — inquadra te e il punto sulla mappa, invece di uscire
+  // dall'app verso Google Maps, e fa comparire la linea rossa live (vedi
+  // updateLive sopra). Un solo listener delegato (i bottoni sono ricreati in
+  // innerHTML ad ogni apertura di popup, uno per callsite non avrebbe senso
+  // da ricollegare ogni volta).
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('.nav-fly-to')
@@ -1168,6 +1220,19 @@ export default function MapView() {
       if (!map) return
       const lat = Number(btn.dataset.lat)
       const lon = Number(btn.dataset.lon)
+      const key = `${btn.dataset.lat},${btn.dataset.lon}`
+
+      if (navTargetRef.current?.key === key) {
+        navTargetRef.current = null
+        btn.textContent = '🧭 Naviga fino qui'
+        btn.classList.remove('nav-fly-to-active')
+        return
+      }
+
+      navTargetRef.current = { lat, lon, key }
+      btn.textContent = '⏹ Ferma navigazione'
+      btn.classList.add('nav-fly-to-active')
+
       const here = liveNavPosition.current
       if (here) {
         const bounds = new maplibregl.LngLatBounds()
