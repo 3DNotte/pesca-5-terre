@@ -3,7 +3,7 @@ import type { SpeciesInfo, WizardMode, WizardResponse } from '../api/scoring'
 import { defaultTimeWindow } from '../utils/sunTimes'
 import './WizardPanel.css'
 
-const BAIT_OPTIONS = ['Sugherello', 'Aguglia', 'Occhiata', 'Cefalopodi', 'Altro vivo', 'Artificiale']
+const BAIT_OPTIONS = ['Sugherello', 'Tombarello', 'Aguglia', 'Occhiata', 'Cefalopodi', 'Altro vivo', 'Artificiale']
 
 // Modalità esche: gli attrezzi classici per catturarle (chiave = quella del backend).
 const GEAR_OPTIONS: { key: string; label: string }[] = [
