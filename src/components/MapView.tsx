@@ -606,6 +606,9 @@ export default function MapView() {
     })
 
     mapRef.current = map
+    // Strumento di sviluppo: espone la mappa in console per debug (es.
+    // map.project([lon,lat]) per verificare un marker sospetto).
+    if (devMode) (window as unknown as { __pescaMap?: maplibregl.Map }).__pescaMap = map
 
     return () => {
       map.remove()
