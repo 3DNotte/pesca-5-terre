@@ -358,7 +358,19 @@
 }
 
 .top-spot-fish-marker-best {
+  /* position:relative fa da ancora per halo/badge (absolute, sotto). Ma un
+     <div> a display:block con width:auto si allarga per riempire tutto il
+     contenitore della mappa (centinaia di px), non si stringe sul contenuto:
+     il marker restava ancorato al punto giusto (via transform), ma l'icona
+     del pesce — in normal flow dentro quel div enorme — finiva all'estremo
+     sinistro della mappa, su terraferma, lontanissima dal vero punto (dove
+     restavano correttamente centrati solo l'alone e il badge "TOP", essendo
+     absolute e centrati al 50% del div sovradimensionato). display:inline-block
+     fa tornare il div a stringersi sul contenuto reale (~46px), come gli altri
+     marker pesce. Bug segnalato dall'utente confrontando pesci e relitti allo zoom.
+  */
   position: relative;
+  display: inline-block;
 }
 
 .top-spot-halo {
