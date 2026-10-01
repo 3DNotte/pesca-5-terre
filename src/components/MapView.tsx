@@ -31,7 +31,7 @@ import {
   type WizardMode,
   type WizardResponse,
 } from '../api/scoring'
-import { imageCoordinates, scoreGridToDataUrl } from '../utils/heatmap'
+import { imageCoordinates, SCORE_TILE_COUNT, scoreGridToTiles } from '../utils/heatmap'
 import { colorForClassification, fishIconSvg } from '../utils/fishIcon'
 import WizardPanel from './WizardPanel'
 import MeteoWidget from './MeteoWidget'
@@ -67,6 +67,12 @@ const SHOAL_COLORS = { low: '#2e9b3a', mid: '#f2b705', high: '#c62828' }
 
 const SCORE_SOURCE_ID = 'predictive-score'
 const SCORE_LAYER_ID = 'predictive-score-layer'
+// Oltre questo zoom, MapLibre proietta male le immagini del punteggio (errore
+// verificato di centinaia di metri, anche con tessere piccole: limite della
+// libreria con sorgenti 'image', non un errore nei nostri dati). Il layer
+// 'maxzoom' da solo non basta a fermare il problema (verificato), quindi lo
+// nascondiamo noi stessi oltre questa soglia, riattivandolo tornando sotto.
+const SCORE_SAFE_MAX_ZOOM = 15
 
 const MY_POSITION_ACCURACY_SOURCE_ID = 'my-position-accuracy'
 const MY_POSITION_ACCURACY_LAYER_ID = 'my-position-accuracy-layer'
@@ -203,6 +209,7 @@ export default function MapView() {
   const [speciesList, setSpeciesList] = useState<SpeciesInfo[]>([])
   const [scoreResult, setScoreResult] = useState<ScoreResponse | null>(null)
   const [scoreVisible, setScoreVisible] = useState(true)
+  const scoreVisibleRef = useRef(true)
   const topSpotMarkersRef = useRef<maplibregl.Marker[]>([])
 
   const hillshadeDetailLayerIdsRef = useRef<string[]>([])
@@ -256,6 +263,7 @@ export default function MapView() {
     setWizardError(null)
     fetchWizard(params)
       .then((result) => {
+        if (devMode) (window as unknown as { __pescaScore?: unknown }).__pescaScore = result
         setWizardResult(result)
         setScoreResult(result)
         setScoreVisible(true)
@@ -519,20 +527,40 @@ export default function MapView() {
       )
 
       // --- Punteggio predittivo (heatmap dal motore di scoring) ---
-      map.addSource(SCORE_SOURCE_ID, {
-        type: 'image',
-        url: blankTransparentPixel(),
-        coordinates: imageCoordinates(AREA_BOUNDS.flat() as [number, number, number, number]),
-      })
-      map.addLayer(
-        {
-          id: SCORE_LAYER_ID,
-          type: 'raster',
-          source: SCORE_SOURCE_ID,
-          paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0 },
-        },
-        firstSymbolLayer,
-      )
+      // Tante tessere piccole, non un'unica immagine su tutta l'area: verificato
+      // con test diretti (dati, canvas e coordinate tutti corretti pixel per
+      // pixel) che un'unica immagine enorme (~29x21 km) viene disegnata da
+      // MapLibre con un errore di proiezione di centinaia di metri quando si
+      // zooma moltissimo sotto costa — il colore appare spostato rispetto al
+      // punto vero, un limite della libreria con immagini cosi' grandi a zoom
+      // estremo, non un errore nei nostri dati. Stesso rimedio gia' usato per
+      // il dettaglio fondali (hillshade_detail_tiles.json): tessere piccole
+      // non soffrono di questo problema.
+      for (let i = 0; i < SCORE_TILE_COUNT; i++) {
+        const sourceId = `${SCORE_SOURCE_ID}-${i}`
+        map.addSource(sourceId, {
+          type: 'image',
+          url: blankTransparentPixel(),
+          coordinates: imageCoordinates(AREA_BOUNDS.flat() as [number, number, number, number]),
+        })
+        map.addLayer(
+          {
+            id: `${SCORE_LAYER_ID}-${i}`,
+            type: 'raster',
+            source: sourceId,
+            // Anche con le tessere, l'errore di proiezione di MapLibre peggiora
+            // avvicinandosi allo zoom massimo (18): verificato che a zoom 17 e'
+            // gia' molto piu' contenuto. maxzoom ferma MapLibre dal ricalcolare
+            // la proiezione oltre questo livello — ingrandisce semplicemente
+            // l'ultima resa corretta (overzoom, lo stesso comportamento di
+            // qualunque tile raster oltre la sua risoluzione nativa), invece
+            // di rifare un calcolo che a quello zoom risulta impreciso.
+            maxzoom: 16,
+            paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0, 'raster-resampling': 'nearest' },
+          },
+          firstSymbolLayer,
+        )
+      }
 
       // --- Zone AMP Cinque Terre — poligoni ESATTI di Zona A e Zona B dal
       // Decreto Ministeriale 20 luglio 2011, n. 189 (Gazzetta Ufficiale),
@@ -661,12 +689,12 @@ export default function MapView() {
     const map = mapRef.current
     if (!map || !scoreResult) return
 
-    const source = map.getSource(SCORE_SOURCE_ID) as maplibregl.ImageSource | undefined
-    if (source) {
-      source.updateImage({
-        url: scoreGridToDataUrl(scoreResult.grid),
-        coordinates: imageCoordinates(scoreResult.grid.bounds),
-      })
+    const tiles = scoreGridToTiles(scoreResult.grid)
+    for (let i = 0; i < SCORE_TILE_COUNT; i++) {
+      const source = map.getSource(`${SCORE_SOURCE_ID}-${i}`) as maplibregl.ImageSource | undefined
+      const tile = tiles[i]
+      if (!source || !tile) continue
+      source.updateImage({ url: tile.url, coordinates: imageCoordinates(tile.bounds) })
     }
 
     for (const marker of topSpotMarkersRef.current) marker.remove()
@@ -698,11 +726,30 @@ export default function MapView() {
   }, [scoreResult])
 
   useEffect(() => {
+    scoreVisibleRef.current = scoreVisible
     const map = mapRef.current
-    if (!map || !map.getLayer(SCORE_LAYER_ID)) return
-    map.setLayoutProperty(SCORE_LAYER_ID, 'visibility', scoreVisible ? 'visible' : 'none')
+    if (!map) return
+
+    // Il colore (tessere immagine) si nasconde da solo oltre SCORE_SAFE_MAX_ZOOM
+    // (bug di MapLibre, vedi sopra); i marker dei pesci restano sempre visibili
+    // a ogni zoom, sono precisi (verificato) e senza di loro sotto quello zoom
+    // non resterebbe alcun indizio di dove sia lo hot spot.
+    const applyColorVisibility = () => {
+      const show = scoreVisibleRef.current && map.getZoom() <= SCORE_SAFE_MAX_ZOOM
+      for (let i = 0; i < SCORE_TILE_COUNT; i++) {
+        const layerId = `${SCORE_LAYER_ID}-${i}`
+        if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', show ? 'visible' : 'none')
+      }
+    }
+    applyColorVisibility()
+    map.on('zoom', applyColorVisibility)
+
     for (const marker of topSpotMarkersRef.current) {
       marker.getElement().style.display = scoreVisible ? '' : 'none'
+    }
+
+    return () => {
+      map.off('zoom', applyColorVisibility)
     }
   }, [scoreVisible])
 
