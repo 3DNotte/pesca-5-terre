@@ -1058,6 +1058,20 @@ export default function MapView() {
   const liveNavPosition = useRef<[number, number] | null>(null) // [lon, lat]
   const liveNavAccuracy = useRef<number | null>(null) // metri (accuracy del GPS)
   const liveNavSpeed = useRef<number | null>(null) // m/s, dal GPS (coords.speed) — null se fermi o non disponibile
+  const liveNavLastFix = useRef<number | null>(null) // Date.now() dell'ultimo fix reale ricevuto
+
+  // Dev tool: espone i ref del GPS live, per forzare da console uno scenario
+  // altrimenti impossibile da testare qui (es. un fix vecchio >20s) senza
+  // aspettare un vero telefono in barca con lo schermo spento.
+  useEffect(() => {
+    if (!devMode) return
+    ;(window as unknown as { __pescaNav?: unknown }).__pescaNav = {
+      position: liveNavPosition,
+      accuracy: liveNavAccuracy,
+      lastFix: liveNavLastFix,
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const myPositionMarkerRef = useRef<maplibregl.Marker | null>(null)
   const myPositionMarkerAddedRef = useRef(false)
   // Punto verso cui e' attiva la navigazione ("Naviga fino qui"): un solo
@@ -1077,6 +1091,7 @@ export default function MapView() {
   const setSimulatedPosition = (coords: [number, number]) => {
     liveNavPosition.current = coords
     liveNavAccuracy.current = 8
+    liveNavLastFix.current = Date.now()
     setSimCoords(coords)
   }
 
@@ -1087,27 +1102,68 @@ export default function MapView() {
     setSimulatedPosition([base[0] + dLon, base[1] + dLat])
   }
 
+  // In barca il telefono resta spesso fermo e lo schermo si spegne da solo
+  // dopo un po': a quel punto il browser mette in pausa sia il GPS sia i
+  // timer della pagina, e al risveglio a volte il watchPosition resta
+  // "bloccato" (segnalato dall'utente: la posizione non si aggiorna durante
+  // la navigazione). Due difese, non una sola:
+  // 1) Wake Lock: tiene lo schermo acceso finche' l'app e' aperta, cosi' il
+  //    problema non si presenta nemmeno (se il browser lo supporta: niente
+  //    errori se non disponibile/negato, e' solo un aiuto in piu').
+  // 2) Alla ripresa di visibilita' (schermo riacceso, cambio app e ritorno),
+  //    si chiude e riapre il watchPosition da zero: forza un fix fresco
+  //    subito, invece di aspettare che il vecchio watch si risvegli da solo.
   useEffect(() => {
-    if (!('geolocation' in navigator)) return
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        if (simActiveRef.current) return // il GPS reale non deve scavalcare la simulazione
-        liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
-        liveNavAccuracy.current = pos.coords.accuracy ?? null
-        // coords.speed e' velocita' SOG dal ricevitore GPS (m/s): a differenza
-        // della bussola magnetica, e' affidabile anche vicino al motore/scafo
-        // metallico. null se il telefono non la fornisce o non ci si muove abbastanza.
-        liveNavSpeed.current = pos.coords.speed ?? null
-      },
-      () => {
-        if (simActiveRef.current) return
-        liveNavPosition.current = null
-        liveNavAccuracy.current = null
-        liveNavSpeed.current = null
-      },
-      { enableHighAccuracy: true, maximumAge: 5000 },
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
+    let wakeLock: { release: () => Promise<void> } | null = null
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as unknown as { wakeLock: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock.request('screen')
+        }
+      } catch {
+        // Non supportato, negato, o batteria risparmio energetico: non e' bloccante, solo un aiuto in meno.
+      }
+    }
+    void requestWakeLock()
+
+    let watchId: number | null = null
+    const startWatch = () => {
+      if (!('geolocation' in navigator)) return
+      if (watchId != null) navigator.geolocation.clearWatch(watchId)
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          if (simActiveRef.current) return // il GPS reale non deve scavalcare la simulazione
+          liveNavPosition.current = [pos.coords.longitude, pos.coords.latitude]
+          liveNavAccuracy.current = pos.coords.accuracy ?? null
+          // coords.speed e' velocita' SOG dal ricevitore GPS (m/s): a differenza
+          // della bussola magnetica, e' affidabile anche vicino al motore/scafo
+          // metallico. null se il telefono non la fornisce o non ci si muove abbastanza.
+          liveNavSpeed.current = pos.coords.speed ?? null
+          liveNavLastFix.current = Date.now()
+        },
+        () => {
+          if (simActiveRef.current) return
+          liveNavPosition.current = null
+          liveNavAccuracy.current = null
+          liveNavSpeed.current = null
+        },
+        { enableHighAccuracy: true, maximumAge: 5000 },
+      )
+    }
+    startWatch()
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return
+      void requestWakeLock() // il wake lock si rilascia da solo quando la pagina e' nascosta: va richiesto di nuovo
+      startWatch() // ripartenza pulita: forza un fix fresco invece di aspettare il vecchio watch
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      if (watchId != null) navigator.geolocation.clearWatch(watchId)
+      void wakeLock?.release()
+    }
   }, [])
 
   useEffect(() => {
@@ -1191,7 +1247,17 @@ export default function MapView() {
         myPositionMarkerRef.current.setLngLat(here)
       }
       // Colore diverso quando e' una posizione simulata (dev), per non confonderla mai con un GPS vero.
-      myPositionMarkerRef.current.getElement().classList.toggle('my-position-marker--sim', simActive)
+      const posEl = myPositionMarkerRef.current.getElement()
+      posEl.classList.toggle('my-position-marker--sim', simActive)
+      // Se non arriva un fix GPS vero da un po' (schermo spento, app in
+      // background), il pallino resta disegnato nell'ultima posizione nota:
+      // meglio dirlo chiaramente (grigio) che lasciarlo sembrare "live" e basta.
+      const ageMs = liveNavLastFix.current != null ? Date.now() - liveNavLastFix.current : null
+      const stale = !simActive && ageMs != null && ageMs > 20_000
+      posEl.classList.toggle('my-position-marker--stale', stale)
+      posEl.title = stale
+        ? `Posizione non aggiornata da ${Math.round((ageMs ?? 0) / 1000)} s (GPS in pausa: schermo spento o app in background)`
+        : ''
       const accuracy = liveNavAccuracy.current
       if (map.getSource(MY_POSITION_ACCURACY_SOURCE_ID)) {
         myPositionMarkerAddedRef.current = true

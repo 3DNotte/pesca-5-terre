@@ -452,3 +452,8 @@
 /* Posizione SIMULATA (strumento di sviluppo): arancione, mai confondibile con il GPS vero (blu). */
 .my-position-marker--sim .my-position-dot { background: #e65100; }
 .my-position-marker--sim .my-position-pulse { background: rgba(230, 81, 0, 0.35); }
+
+/* Nessun fix GPS da piu' di 20s (schermo spento, app in background): grigio
+   e senza pulsare, per non far credere che sia una posizione "live". */
+.my-position-marker--stale .my-position-dot { background: #757575; }
+.my-position-marker--stale .my-position-pulse { display: none; }
