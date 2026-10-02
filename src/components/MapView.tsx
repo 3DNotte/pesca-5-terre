@@ -221,10 +221,33 @@ export default function MapView() {
 
   const { pois, addPoi, removePoi } = usePois()
 
+  // Elenco specie/esche dal backend: su Render gratuito il server puo' essere
+  // addormentato all'apertura dell'app (risveglio fino a ~1 minuto). Prima si
+  // tentava una volta sola e, se falliva, l'elenco restava vuoto per sempre
+  // (nessuna voce nel wizard, pulsante bloccato). Ora riprova ogni 5 s finche'
+  // risponde.
   useEffect(() => {
-    fetchSpecies()
-      .then(setSpeciesList)
-      .catch(() => setSpeciesList([]))
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const load = () => {
+      fetchSpecies()
+        .then((list) => {
+          if (cancelled) return
+          if (list.length > 0) setSpeciesList(list)
+          else timer = setTimeout(load, 5000)
+        })
+        .catch(() => {
+          if (!cancelled) timer = setTimeout(load, 5000)
+        })
+    }
+    load()
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [])
+
+  useEffect(() => {
     fetch(withCacheBust('/data/relitti_ukho.geojson'))
       .then((r) => r.json())
       .then((data: WreckCollection) => setWrecks([...data.features.filter((f) => !EXCLUDED_WRECK_IDS.has(f.properties.wreck_id)), ...EXTRA_WRECKS]))

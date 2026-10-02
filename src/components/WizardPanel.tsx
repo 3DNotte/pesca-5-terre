@@ -174,6 +174,12 @@ export default function WizardPanel({
             ? "Sorprendimi (scegli tu l'esca migliore ora)"
             : 'Sorprendimi (scegli tu la specie migliore ora)'}
         </label>
+        {!surprise && modeSpecies.length === 0 && (
+          <div className="wizard-loading-note">
+            Carico l'elenco dal server… se l'app è appena stata aperta può servire fino a un minuto
+            (il server gratuito si sta svegliando).
+          </div>
+        )}
         {!surprise && (
           <div className="wizard-chip-row">
             {modeSpecies.map((s) => (
