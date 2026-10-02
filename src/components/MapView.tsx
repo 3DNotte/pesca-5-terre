@@ -214,7 +214,7 @@ export default function MapView() {
 
   const hillshadeDetailLayerIdsRef = useRef<string[]>([])
 
-  const [legendCollapsed, setLegendCollapsed] = useState(false)
+  const [legendCollapsed, setLegendCollapsed] = useState(true)
   const [otherOpen, setOtherOpen] = useState(false)
   const [myPositionVisible, setMyPositionVisible] = useState(true)
   const [depthGrid, setDepthGrid] = useState<Awaited<ReturnType<typeof loadDepthGrid>>>(null)
