@@ -280,7 +280,13 @@
     "disturbance_sensitivity": 0.7,
     "structure_affinity": 0.15,
     "depth_range_m": null,
-    "notes": "Per gran parte dell'anno vive isolato o in piccoli gruppi in fase erratica a grandi profondita' (epipelagico 0-200m, ma con immersioni notturne di alimentazione fino a 500-1000m: di notte e' di fatto irraggiungibile da barca costiera). Da meta' maggio a meta' luglio cambia comportamento: si raduna in grandi banchi e risale verso costa fino a soli 9-10m di profondita', ripercorrendo sempre le stesse rotte migratorie per la riproduzione — questa e' la finestra realistica per un piccolo natante. Sensibile a variazioni termiche e di salinita'. Specie pelagica pura: la morfologia del fondale conta molto poco, contano la rotta migratoria e la temperatura dell'acqua. Conferme da tag satellitari ed elettronici: riproduzione aprile-maggio nel Mediterraneo, poi migrazione post-riproduttiva verso il Nord Atlantico a fine luglio/agosto. Come il dentice, le immersioni seguono la profondita' del termoclino — stesso principio guida (struttura termica, non solo il fondale) di altri grandi predatori pelagici."
+    "notes": "Per gran parte dell'anno vive isolato o in piccoli gruppi in fase erratica a grandi profondita' (epipelagico 0-200m, ma con immersioni notturne di alimentazione fino a 500-1000m: di notte e' di fatto irraggiungibile da barca costiera). Da meta' maggio a meta' luglio cambia comportamento: si raduna in grandi banchi e risale verso costa fino a soli 9-10m di profondita', ripercorrendo sempre le stesse rotte migratorie per la riproduzione — questa e' la finestra realistica per un piccolo natante. Sensibile a variazioni termiche e di salinita'. Specie pelagica pura: la morfologia del fondale conta molto poco, contano la rotta migratoria e la temperatura dell'acqua. Conferme da tag satellitari ed elettronici: riproduzione aprile-maggio nel Mediterraneo, poi migrazione post-riproduttiva verso il Nord Atlantico a fine luglio/agosto. Come il dentice, le immersioni seguono la profondita' del termoclino — stesso principio guida (struttura termica, non solo il fondale) di altri grandi predatori pelagici.",
+    "offshore_min_m": 2000,
+    "inshore_months": [
+      5,
+      6,
+      7
+    ]
   },
   "tonno_branco": {
     "label": "Tonno di branco (alletterato)",
@@ -333,7 +339,8 @@
     "disturbance_sensitivity": 0.3,
     "structure_affinity": 0.1,
     "depth_range_m": null,
-    "notes": "Tonnetto alletterato/tombarello: caccia in gruppo con tattiche cooperative, circondando banchi di pesce foraggio e alternandosi nelle immersioni. In superficie il mare 'si trasforma in pochi secondi': uccelli in tuffo, acciughe o sardine che saltano, scie nervose e spruzzi improvvisi segnalano il banco in caccia — si pesca leggendo questi segnali, non il fondale. Non serve andare al largo: presente e catturato anche sotto costa nel Mar Ligure, soprattutto da fine estate a inizio autunno. Pelagico di superficie puro: l'affinita' di struttura del fondale e' quasi irrilevante, conta il pesce foraggio in transito. Temperatura preferenziale del tonnetto alletterato (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 11.5-27.8 gradi C (media 23.3), crescita rapida (K=0.1/anno secondo il modello, lunghezza asintotica 112cm). Range di temperatura confermato 18-30 gradi C (studi Golfo di Gabes, Tunisia). Dieta con variazione stagionale: crostacei dominanti in autunno-inverno, pesce dominante in primavera-estate — utile per la scelta dell'esca secondo il periodo."
+    "notes": "Tonnetto alletterato/tombarello: caccia in gruppo con tattiche cooperative, circondando banchi di pesce foraggio e alternandosi nelle immersioni. In superficie il mare 'si trasforma in pochi secondi': uccelli in tuffo, acciughe o sardine che saltano, scie nervose e spruzzi improvvisi segnalano il banco in caccia — si pesca leggendo questi segnali, non il fondale. Non serve andare al largo: presente e catturato anche sotto costa nel Mar Ligure, soprattutto da fine estate a inizio autunno. Pelagico di superficie puro: l'affinita' di struttura del fondale e' quasi irrilevante, conta il pesce foraggio in transito. Temperatura preferenziale del tonnetto alletterato (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 11.5-27.8 gradi C (media 23.3), crescita rapida (K=0.1/anno secondo il modello, lunghezza asintotica 112cm). Range di temperatura confermato 18-30 gradi C (studi Golfo di Gabes, Tunisia). Dieta con variazione stagionale: crostacei dominanti in autunno-inverno, pesce dominante in primavera-estate — utile per la scelta dell'esca secondo il periodo.",
+    "offshore_min_m": 300
   },
   "lampuga": {
     "label": "Lampuga",
@@ -376,7 +383,13 @@
     "disturbance_sensitivity": 0.2,
     "structure_affinity": 0.1,
     "depth_range_m": null,
-    "notes": "Specie pelagica gregaria in acque calde (21-30 gradi C), si avvicina a costa in primavera per la riproduzione ('tempo di caponi'), ma la stagione praticamente piu' pescosa e' fine estate-autunno quando i nati di primavera, a crescita fortissima, raggiungono taglia da cattura (pesca ricreativa UE consentita 15 agosto - 31 dicembre: verificare sempre il calendario vigente). Comportamento poco legato all'orario e molto agli oggetti galleggianti: tronchi, detriti, cannizzi e linee di corrente/convergenza fanno ombra e attirano banchi anche numerosi (tecnica siciliana dei cannizzi). Curiosa e poco diffidente verso le imbarcazioni. La morfologia del fondale non conta: conta trovare oggetti alla deriva o linee di corrente in superficie. Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 18.1-29.1 gradi C (media 27.4) — coerente con la preferenza per acque calde gia' nota. Crescita fortissima (K=2.6/anno), lunghezza asintotica 138cm. L'associazione con oggetti galleggianti/FAD e' documentata da secoli ma, secondo studi di tagging acustico, e' di breve durata: il pesce visita l'oggetto, non vi si stabilisce in modo permanente."
+    "notes": "Specie pelagica gregaria in acque calde (21-30 gradi C), si avvicina a costa in primavera per la riproduzione ('tempo di caponi'), ma la stagione praticamente piu' pescosa e' fine estate-autunno quando i nati di primavera, a crescita fortissima, raggiungono taglia da cattura (pesca ricreativa UE consentita 15 agosto - 31 dicembre: verificare sempre il calendario vigente). Comportamento poco legato all'orario e molto agli oggetti galleggianti: tronchi, detriti, cannizzi e linee di corrente/convergenza fanno ombra e attirano banchi anche numerosi (tecnica siciliana dei cannizzi). Curiosa e poco diffidente verso le imbarcazioni. La morfologia del fondale non conta: conta trovare oggetti alla deriva o linee di corrente in superficie. Temperatura preferenziale (FishBase/AquaMaps, via monitoraggio AMP Cinque Terre 2025): 18.1-29.1 gradi C (media 27.4) — coerente con la preferenza per acque calde gia' nota. Crescita fortissima (K=2.6/anno), lunghezza asintotica 138cm. L'associazione con oggetti galleggianti/FAD e' documentata da secoli ma, secondo studi di tagging acustico, e' di breve durata: il pesce visita l'oggetto, non vi si stabilisce in modo permanente.",
+    "offshore_min_m": 800,
+    "inshore_months": [
+      4,
+      5,
+      6
+    ]
   },
   "serra": {
     "label": "Pesce serra",

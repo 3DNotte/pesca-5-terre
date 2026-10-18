@@ -30,6 +30,11 @@ class SpeciesProfile:
     # ogni attrezzo e' adatto a catturare l'esca (0..1, stima da pratica di pesca).
     kind: str = "predator"
     gear_fit: dict[str, float] | None = None
+    # Solo pelagici (depth_range_m None): distanza minima dalla costa a cui la
+    # specie sta di solito, e mesi in cui si avvicina a riva (riduce la
+    # distanza a ~300 m). Valori tratti dalle note del profilo.
+    offshore_min_m: float | None = None
+    inshore_months: list[int] | None = None
 
     def seasonal_score(self, month: int) -> float:
         return self.seasonality_by_month[month - 1]
@@ -61,6 +66,8 @@ def _load_file(path, default_kind: str) -> dict[str, SpeciesProfile]:
             notes=data["notes"],
             kind=data.get("kind", default_kind),
             gear_fit=data.get("gear_fit"),
+            offshore_min_m=data.get("offshore_min_m"),
+            inshore_months=data.get("inshore_months"),
         )
     return profiles
 

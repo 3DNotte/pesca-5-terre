@@ -90,13 +90,18 @@ def zone_boost(grid: MorphologyGrid) -> np.ndarray:
     return (1 + ZONE_BOOST_MAX * lon_w[None, :] * reach).astype(np.float32)
 
 
-_SPATIAL_CACHE: dict[str, np.ndarray] = {}
+_SPATIAL_CACHE: dict[tuple[str, bool], np.ndarray] = {}
+
+INSHORE_OFFSHORE_MIN_M = 300  # distanza minima per i pelagici nei mesi in cui si avvicinano a riva
 
 
-def _spatial_term(species: SpeciesProfile) -> np.ndarray:
+def _spatial_term(species: SpeciesProfile, month: int | None = None) -> np.ndarray:
     """Termine spaziale (0..1) per specie: non dipende dall'orario, quindi si
-    calcola una volta sola (il wizard valuta molte specie x orari)."""
-    cached = _SPATIAL_CACHE.get(species.key)
+    calcola una volta sola (il wizard valuta molte specie x orari). Per i
+    pelagici dipende anche dal mese (vicino o lontano da riva)."""
+    inshore = bool(species.inshore_months and month in species.inshore_months)
+    cache_key = (species.key, inshore)
+    cached = _SPATIAL_CACHE.get(cache_key)
     if cached is not None:
         return cached
     grid = load_morphology()
@@ -105,9 +110,23 @@ def _spatial_term(species: SpeciesProfile) -> np.ndarray:
     morf_n = np.clip(morf_raw / 0.70, 0, 1) ** 0.8
 
     if species.depth_range_m is None:
-        # Pelagici: seguono scarpate/fronti piu' che il fondo sotto costa;
-        # base moderata, il rilievo la modula (mai zero: sono mobili).
-        spaziale = 0.08 + 0.60 * morf_n**1.5
+        # Pelagici: prima si usava quasi solo la pendenza del fondale, che e'
+        # massima proprio sotto costa (la scogliera delle 5 Terre cade a
+        # picco): il tonno rosso adulto finiva consigliato davanti al porto di
+        # Vernazza a 12 m (segnalato dall'utente). Ora conta prima di tutto la
+        # distanza dalla costa tipica della specie (offshore_min_m, dalle note
+        # del profilo); il rilievo resta un fattore secondario (scarpate e
+        # fronti al largo).
+        offshore_min = species.offshore_min_m or 0.0
+        if inshore:
+            offshore_min = min(offshore_min, INSHORE_OFFSHORE_MIN_M)
+        if offshore_min > 0:
+            d = grid.distance_to_coast_m
+            far = np.clip((d - 0.5 * offshore_min) / (0.5 * offshore_min), 0, 1)
+        else:
+            far = np.ones(grid.shape, dtype=np.float32)
+        spaziale = far * (0.35 + 0.45 * morf_n)
+        boost = 1.0  # il favore per l'arco Mesco-Riomaggiore e' sotto costa: non vale per chi sta al largo
     else:
         aff = 0.6 + 0.4 * species.structure_affinity  # ammorbidita: l'affinita' non deve annullare il posto
         spaziale = np.clip(
@@ -115,8 +134,9 @@ def _spatial_term(species: SpeciesProfile) -> np.ndarray:
             0,
             1,
         )
-    result = np.clip(spaziale * zone_boost(grid) * shallow_gate(grid), 0, 1).astype(np.float32)
-    _SPATIAL_CACHE[species.key] = result
+        boost = zone_boost(grid)
+    result = np.clip(spaziale * boost * shallow_gate(grid), 0, 1).astype(np.float32)
+    _SPATIAL_CACHE[cache_key] = result
     return result
 
 
@@ -139,7 +159,7 @@ def compute_score_grid(species: SpeciesProfile, dt: datetime, weights: dict | No
     grid: MorphologyGrid = load_morphology()
     w = weights if weights is not None else WEIGHTS
 
-    morfologia = _spatial_term(species)
+    morfologia = _spatial_term(species, dt.month)
 
     stagionale = np.full(grid.shape, species.seasonal_score(dt.month), dtype=np.float32)
     orario = np.full(grid.shape, species.hourly_score(dt.hour), dtype=np.float32)
