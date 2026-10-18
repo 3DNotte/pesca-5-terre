@@ -78,6 +78,9 @@ const MY_POSITION_ACCURACY_SOURCE_ID = 'my-position-accuracy'
 const MY_POSITION_ACCURACY_LAYER_ID = 'my-position-accuracy-layer'
 const NAV_LINE_SOURCE_ID = 'nav-live-lines'
 const NAV_LINE_LAYER_ID = 'nav-live-lines-layer'
+// Gemella invisibile e larga della linea rossa: la linea vera e' 3 px, col
+// dito in barca non la si prende mai — questa allarga la zona da toccare.
+const NAV_LINE_HIT_LAYER_ID = 'nav-live-lines-hit'
 
 const ISOBATHS_SOURCE_ID = 'isobaths'
 const ISOBATHS_LINE_LAYER_ID = 'isobaths-line'
@@ -368,6 +371,47 @@ export default function MapView() {
         // Rosso a trattini, stesso rosso "importante" usato per punteggio e
         // secche alte: una sola linea, quella del target attivo di "Naviga fino qui".
         paint: { 'line-color': '#c62828', 'line-width': 3, 'line-dasharray': [2, 1.5] },
+      })
+      map.addLayer({
+        id: NAV_LINE_HIT_LAYER_ID,
+        type: 'line',
+        source: NAV_LINE_SOURCE_ID,
+        paint: { 'line-color': '#000', 'line-width': 24, 'line-opacity': 0 },
+      })
+
+      // Etichetta sulla linea rossa: minuti mancanti, distanza e velocita'.
+      // Sul PC compare passandoci sopra col mouse, sul telefono toccandola
+      // (resta finche' non si tocca altrove sulla mappa).
+      const showNavTip = (lngLat: maplibregl.LngLat, pinned: boolean) => {
+        const html = navTipHtml()
+        if (!html) return
+        if (!navTipRef.current) {
+          navTipRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            className: 'nav-tip',
+            offset: 12,
+          })
+        }
+        navTipRef.current.setLngLat(lngLat).setHTML(html).addTo(map)
+        navTipPinnedRef.current = pinned || navTipPinnedRef.current
+      }
+      const hideNavTip = () => {
+        navTipRef.current?.remove()
+        navTipPinnedRef.current = false
+      }
+      map.on('mousemove', NAV_LINE_HIT_LAYER_ID, (e) => {
+        map.getCanvas().style.cursor = 'pointer'
+        showNavTip(e.lngLat, false)
+      })
+      map.on('mouseleave', NAV_LINE_HIT_LAYER_ID, () => {
+        map.getCanvas().style.cursor = ''
+        if (!navTipPinnedRef.current) hideNavTip()
+      })
+      map.on('click', (e) => {
+        const onLine = map.queryRenderedFeatures(e.point, { layers: [NAV_LINE_HIT_LAYER_ID] }).length > 0
+        if (onLine) showNavTip(e.lngLat, true)
+        else if (navTipPinnedRef.current) hideNavTip()
       })
 
       // Attribuzioni obbligatorie (licenze) ma ripiegate dietro l'icona ⓘ: MapLibre
@@ -1155,6 +1199,25 @@ export default function MapView() {
   // Punto verso cui e' attiva la navigazione ("Naviga fino qui"): un solo
   // target alla volta, e' quello che disegna la linea rossa sulla mappa.
   const navTargetRef = useRef<{ lat: number; lon: number; key: string } | null>(null)
+  const navTipRef = useRef<maplibregl.Popup | null>(null)
+  const navTipPinnedRef = useRef(false)
+
+  // Testo dell'etichetta sulla linea rossa (vedi showNavTip): null se non c'e'
+  // una navigazione attiva o una posizione.
+  function navTipHtml(): string | null {
+    const here = liveNavPosition.current
+    const target = navTargetRef.current
+    if (!here || !target) return null
+    const dist = distanceMeters(here, [target.lon, target.lat])
+    const speed = liveNavSpeed.current
+    const useRealSpeed = speed != null && speed >= MIN_REAL_SPEED_MS
+    const distStr = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${Math.round(dist)} m`
+    const eta = formatEta(dist, useRealSpeed ? speed : ASSUMED_BOAT_SPEED_MS)
+    const speedStr = useRealSpeed
+      ? `${(speed * 1.94384).toFixed(1)} kn`
+      : `${(ASSUMED_BOAT_SPEED_MS * 1.94384).toFixed(0)} kn <span class="nav-tip-note">(stimata)</span>`
+    return `<div class="nav-tip-main">⏱ ${eta} · ${distStr}</div><div class="nav-tip-speed">⛵ ${speedStr}</div>`
+  }
 
   useEffect(() => {
     simActiveRef.current = simActive
@@ -1303,6 +1366,16 @@ export default function MapView() {
           type: 'FeatureCollection',
           features,
         })
+      }
+
+      // Etichetta sulla linea: si aggiorna con il resto, sparisce a navigazione ferma.
+      if (navTipRef.current?.isOpen()) {
+        const html = navTipHtml()
+        if (html) navTipRef.current.setHTML(html)
+        else {
+          navTipRef.current.remove()
+          navTipPinnedRef.current = false
+        }
       }
 
       // Marker "La mia posizione" sulla mappa.

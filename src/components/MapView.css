@@ -220,6 +220,32 @@
   background: #a41f1f;
 }
 
+/* Etichetta sulla linea rossa di navigazione: piccola, essenziale, senza X. */
+.nav-tip .maplibregl-popup-content {
+  padding: 5px 9px;
+  border-radius: 8px;
+  border-left: 3px solid #c62828;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.nav-tip-main {
+  font-weight: 700;
+  color: #222;
+}
+
+.nav-tip-speed {
+  color: #445;
+}
+
+.nav-tip-note {
+  color: #889;
+  font-size: 11px;
+}
+
 .wreck-marker {
   width: 24px;
   height: 24px;
