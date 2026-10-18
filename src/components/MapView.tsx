@@ -174,13 +174,16 @@ export default function MapView() {
   const [ferryVisible, setFerryVisible] = useState(false) // "Altro": spento all'avvio
   const [addPoiMode, setAddPoiMode] = useState(false)
 
-  // Strumento di SVILUPPO (vedi DevSimPanel/utils/devMode.ts): quando attivo,
-  // il GPS reale viene ignorato e liveNavPosition e' pilotata a mano — cosi'
-  // tutto il resto (marker, linea, "Ti porto li'") non sa la differenza e non
-  // va toccato per testare da PC senza andare in mare.
+  // Strumento di SVILUPPO (vedi DevSimPanel/utils/devMode.ts): simula SOLO
+  // la posizione della barca. Si apre "Simula", si tocca la mappa una volta e
+  // da li' il GPS reale viene ignorato e liveNavPosition resta su quel punto —
+  // tutto il resto (marker, popup, linea, tempi) e' identico all'app normale.
   const devMode = useMemo(() => isDevMode(), [])
   const simActiveRef = useRef(false)
   const [simActive, setSimActive] = useState(false)
+  // In attesa del click sulla mappa che posiziona la barca (un solo click).
+  const simPlacingRef = useRef(false)
+  const [simPlacing, setSimPlacing] = useState(false)
   const [simCoords, setSimCoords] = useState<[number, number] | null>(null)
   const [pendingCoords, setPendingCoords] = useState<[number, number] | null>(null)
   const [sessionFeedbackOpen, setSessionFeedbackOpen] = useState(false)
@@ -309,9 +312,9 @@ export default function MapView() {
   useEffect(() => {
     addPoiModeRef.current = addPoiMode
     if (containerRef.current) {
-      containerRef.current.style.cursor = addPoiMode || simActive ? 'crosshair' : ''
+      containerRef.current.style.cursor = addPoiMode || simPlacing ? 'crosshair' : ''
     }
-  }, [addPoiMode, simActive])
+  }, [addPoiMode, simPlacing])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -340,7 +343,7 @@ export default function MapView() {
     map.on('click', (e) => {
       if (addPoiModeRef.current) {
         setPendingCoords([e.lngLat.lng, e.lngLat.lat])
-      } else if (simActiveRef.current) {
+      } else if (simPlacingRef.current) {
         setSimulatedPosition([e.lngLat.lng, e.lngLat.lat])
       }
     })
@@ -1163,18 +1166,22 @@ export default function MapView() {
     }
   }, [simActive])
 
+  useEffect(() => {
+    simPlacingRef.current = simPlacing
+  }, [simPlacing])
+
+  // Un click = barca posizionata, fine: il pannello si chiude e la mappa
+  // torna a rispondere ai click come sempre.
   const setSimulatedPosition = (coords: [number, number]) => {
+    simActiveRef.current = true
+    simPlacingRef.current = false
     liveNavPosition.current = coords
     liveNavAccuracy.current = 8
+    liveNavSpeed.current = null
     liveNavLastFix.current = Date.now()
+    setSimActive(true)
+    setSimPlacing(false)
     setSimCoords(coords)
-  }
-
-  const nudgeSimulatedPosition = (dLatM: number, dLonM: number) => {
-    const base = simCoords ?? AREA_CENTER
-    const dLat = dLatM / 111_320
-    const dLon = dLonM / (111_320 * Math.cos((base[1] * Math.PI) / 180))
-    setSimulatedPosition([base[0] + dLon, base[1] + dLat])
   }
 
   // In barca il telefono resta spesso fermo e lo schermo si spegne da solo
@@ -1321,9 +1328,7 @@ export default function MapView() {
       } else {
         myPositionMarkerRef.current.setLngLat(here)
       }
-      // Colore diverso quando e' una posizione simulata (dev), per non confonderla mai con un GPS vero.
       const posEl = myPositionMarkerRef.current.getElement()
-      posEl.classList.toggle('my-position-marker--sim', simActive)
       // Se non arriva un fix GPS vero da un po' (schermo spento, app in
       // background), il pallino resta disegnato nell'ultima posizione nota:
       // meglio dirlo chiaramente (grigio) che lasciarlo sembrare "live" e basta.
@@ -1343,12 +1348,12 @@ export default function MapView() {
       }
     }
 
-    // In simulazione l'intervallo e' piu' corto: si sta testando a mano,
-    // aspettare 2s per vedere l'effetto di ogni click sarebbe scomodo.
-    const interval = setInterval(updateLive, simActive ? 400 : 2000)
+    // simCoords tra le dipendenze solo per ridisegnare subito la barca appena
+    // posizionata in simulazione, invece di aspettare il giro successivo.
+    const interval = setInterval(updateLive, 2000)
     updateLive()
     return () => clearInterval(interval)
-  }, [myPositionVisible, simActive])
+  }, [myPositionVisible, simActive, simCoords])
 
   // "Naviga fino qui": avvia (o ferma, se gia' attivo) la navigazione verso
   // questo punto — inquadra te e il punto sulla mappa, invece di uscire
@@ -1506,9 +1511,12 @@ export default function MapView() {
       {devMode && (
         <DevSimPanel
           active={simActive}
-          onToggleActive={() => setSimActive((v) => !v)}
-          coords={simCoords}
-          onNudge={nudgeSimulatedPosition}
+          placing={simPlacing}
+          onTogglePlacing={() => setSimPlacing((v) => !v)}
+          onStop={() => {
+            setSimPlacing(false)
+            setSimActive(false)
+          }}
         />
       )}
 
