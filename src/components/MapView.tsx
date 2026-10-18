@@ -290,6 +290,11 @@ export default function MapView() {
         setWizardResult(result)
         setScoreResult(result)
         setScoreVisible(true)
+        // "Sono già a pesca": a calcolo fatto il pannello si chiude, cosi' la
+        // mappa con gli hot spot si vede subito (richiesta dell'utente). In
+        // modalita' esche resta aperto: c'e' il pulsante "Ora cerco il predatore".
+        // Riaprendo "Peschiamo!" il risultato e' ancora li'.
+        if (params.mode === 'predator') setWizardOpen(false)
         const map = mapRef.current
         if (map && result.top_spots.length > 0) {
           const bounds = new maplibregl.LngLatBounds()
