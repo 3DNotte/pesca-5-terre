@@ -286,7 +286,69 @@
       5,
       6,
       7
-    ]
+    ],
+    "legal_note": "Tonno rosso: taglia minima 30 kg o 115 cm alla forca, massimo 1 esemplare per barca al giorno, serve il nulla osta e la dichiarazione su RecFishing (Guardia Costiera, Reg. UE 2023/2053). Nel 2026 il trattenimento sportivo e' chiuso dal 9 settembre: solo cattura e rilascio. Verifica sempre le regole in vigore prima di uscire."
+  },
+  "tonno_rosso_giovane": {
+    "label": "Tonno rosso giovane (in branco)",
+    "seasonality_by_month": [
+      0.2,
+      0.2,
+      0.25,
+      0.35,
+      0.5,
+      0.6,
+      0.75,
+      0.9,
+      1.0,
+      1.0,
+      0.8,
+      0.35
+    ],
+    "hourly_bands": [
+      {
+        "start": 5,
+        "end": 9,
+        "score": 1.0
+      },
+      {
+        "start": 9,
+        "end": 12,
+        "score": 0.6
+      },
+      {
+        "start": 12,
+        "end": 16,
+        "score": 0.4
+      },
+      {
+        "start": 16,
+        "end": 19,
+        "score": 0.75
+      },
+      {
+        "start": 19,
+        "end": 21,
+        "score": 0.5
+      },
+      {
+        "start": 21,
+        "end": 5,
+        "score": 0.15
+      }
+    ],
+    "disturbance_sensitivity": 0.5,
+    "structure_affinity": 0.1,
+    "depth_range_m": null,
+    "offshore_min_m": 1000,
+    "inshore_months": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "legal_note": "Tonno rosso: taglia minima 30 kg o 115 cm alla forca, massimo 1 esemplare per barca al giorno, serve il nulla osta e la dichiarazione su RecFishing (Guardia Costiera, Reg. UE 2023/2053). Nel 2026 il trattenimento sportivo e' chiuso dal 9 settembre: solo cattura e rilascio. Verifica sempre le regole in vigore prima di uscire. Attenzione: la gran parte dei tonni rossi giovani e' sotto i 30 kg e va comunque rilasciata.",
+    "notes": "Tonno rosso (Thunnus thynnus) di 1-3 anni, da qualche kg fino a ~30 kg, in branchi di taglia simile. A differenza dell'adulto (al largo, isolato, sotto costa solo maggio-luglio per la riproduzione) i giovani stanno piu' vicino alla costa e in superficie, a caccia di piccoli pelagici. Fonti: nel Tirreno meridionale (nord Sicilia) giovani dell'anno catturati da fine agosto a inizio novembre, 77-153 giorni di eta', oltre 1 kg dopo quattro mesi (Scientia Marina, eta' e crescita dei giovani di tonno rosso in Sicilia); il Mar Ligure e' una delle aree di nursery studiate con la microchimica degli otoliti. Dieta: acciughe e sardine, oggi sempre piu' sugarelli per il calo dei piccoli pelagici (ICM-CSIC, Golfo di Valencia). Nel Mediterraneo occidentale i branchi di giovani sono associati a fronti e strutture oceaniche (avvistamenti aerei, ResearchGate). Giovani marcati in Atlantico: d'estate in acque costiere e poco profonde (media 5-12 m), d'inverno piu' profondi e variabili (PLOS ONE 2012) - dato atlantico, non del Mar Ligure. STIME mie: distanza minima dalla costa (1 km, 300 m da agosto a novembre), fasce orarie (alba e tramonto, come gli altri pelagici di superficie) e stagionalita' (picco agosto-ottobre ricavato dalle fonti sopra)."
   },
   "tonno_branco": {
     "label": "Tonno di branco (alletterato)",

@@ -35,6 +35,8 @@ class SpeciesProfile:
     # distanza a ~300 m). Valori tratti dalle note del profilo.
     offshore_min_m: float | None = None
     inshore_months: list[int] | None = None
+    # Avviso di legge mostrato nel risultato del wizard (es. taglie minime del tonno rosso).
+    legal_note: str | None = None
 
     def seasonal_score(self, month: int) -> float:
         return self.seasonality_by_month[month - 1]
@@ -68,6 +70,7 @@ def _load_file(path, default_kind: str) -> dict[str, SpeciesProfile]:
             gear_fit=data.get("gear_fit"),
             offshore_min_m=data.get("offshore_min_m"),
             inshore_months=data.get("inshore_months"),
+            legal_note=data.get("legal_note"),
         )
     return profiles
 

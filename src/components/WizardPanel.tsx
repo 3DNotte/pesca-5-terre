@@ -264,6 +264,7 @@ export default function WizardPanel({
         <div className="wizard-result">
           <div className="wizard-result-species">{result.species_label}</div>
           <p>{result.motivation}</p>
+          {result.legal_note && <div className="wizard-legal-note">⚖️ {result.legal_note}</div>}
           {luckyCharm === true && (
             <p className="wizard-lucky">
               🍀 Portafortuna a bordo — non cambia il calcolo, ma male non fa.

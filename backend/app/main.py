@@ -358,6 +358,7 @@ def wizard(
         "weights": weights,
         "meteo": {"available": result["meteo_available"], "conditions": result["conditions"]},
         "motivation": motivation,
+        "legal_note": profile.legal_note,
         "ferry_warnings": ferry_warnings,
         "grid": _grid_payload(score, grid),
         "top_spots": top_spots,

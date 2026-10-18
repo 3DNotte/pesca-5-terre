@@ -124,6 +124,7 @@ export interface WizardResponse extends ScoreResponse {
   time_window: { start: string; end: string }
   bottom_fishing: boolean
   motivation: string
+  legal_note?: string | null // avviso di legge (es. taglia minima tonno rosso)
   ferry_warnings: string[]
 }
 
