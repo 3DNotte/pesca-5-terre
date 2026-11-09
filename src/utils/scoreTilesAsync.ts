@@ -19,22 +19,44 @@ function getWorker(): Worker | null {
   }
   worker.onmessage = (e: MessageEvent<{ id: number; tiles: { bounds: ScoreTile['bounds']; blob: Blob }[] }>) => {
     const resolve = pending.get(e.data.id)
-    if (!resolve) return
+    if (!resolve) return // gia' risolto dal ripiego (vedi scoreTilesAsync)
     pending.delete(e.data.id)
     for (const url of previousUrls) URL.revokeObjectURL(url)
     const tiles = e.data.tiles.map((t) => ({ bounds: t.bounds, url: URL.createObjectURL(t.blob) }))
     previousUrls = tiles.map((t) => t.url)
     resolve(tiles)
   }
+  // Worker rotto: da qui in poi tutto sul thread principale.
+  worker.onerror = () => {
+    workerBroken = true
+    worker?.terminate()
+    worker = null
+  }
   return worker
 }
 
+// Se il worker non risponde in tempo (errore, o browser che lo congela —
+// visto una volta con la pagina nascosta) il colore si calcola comunque nel
+// modo vecchio: meglio un attimo di blocco che una mappa senza sfumatura.
+const WORKER_TIMEOUT_MS = 10_000
+let workerBroken = false
+
 export function scoreTilesAsync(grid: ScoreResponse['grid']): Promise<ScoreTile[]> {
-  const w = getWorker()
+  const w = workerBroken ? null : getWorker()
   if (!w) return Promise.resolve(scoreGridToTiles(grid))
   const id = ++nextId
   return new Promise((resolve) => {
-    pending.set(id, resolve)
+    const fallback = () => {
+      if (!pending.has(id)) return
+      pending.delete(id)
+      resolve(scoreGridToTiles(grid))
+    }
+    const timer = setTimeout(fallback, WORKER_TIMEOUT_MS)
+    pending.set(id, (tiles) => {
+      clearTimeout(timer)
+      resolve(tiles)
+    })
+    w.addEventListener('error', fallback, { once: true })
     w.postMessage({ id, grid })
   })
 }
