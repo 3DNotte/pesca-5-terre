@@ -46,7 +46,18 @@ export default function AddPoiForm({ coords, depthMeters, onCancel, onSave }: Pr
       <div className="poi-form-title">Nuovo punto</div>
 
       <label>
-        1. Cosa?
+        Nome
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="es. Secca del Corvo"
+          autoFocus
+        />
+      </label>
+
+      <label>
+        Cosa?
         <select value={type} onChange={(e) => setType(e.target.value as PoiType)}>
           {Object.entries(POI_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -57,26 +68,15 @@ export default function AddPoiForm({ coords, depthMeters, onCancel, onSave }: Pr
       </label>
 
       <label>
-        2. Dove?
+        Dove?
         <div className="poi-form-coords">
           {coords[1].toFixed(5)}, {coords[0].toFixed(5)}
         </div>
       </label>
 
       <label>
-        3. Quando?
+        Quando?
         <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
-      </label>
-
-      <label>
-        Nome
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="es. Secca del Corvo"
-          autoFocus
-        />
       </label>
 
       <label>

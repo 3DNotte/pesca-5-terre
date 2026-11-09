@@ -479,3 +479,43 @@
    e senza pulsare, per non far credere che sia una posizione "live". */
 .my-position-marker--stale .my-position-dot { background: #757575; }
 .my-position-marker--stale .my-position-pulse { display: none; }
+
+/* "Aggiungi punto qui?" (dito premuto / tasto destro): primo passaggio, solo conferma del posto. */
+.quick-add-popup .maplibregl-popup-content {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-family: system-ui, sans-serif;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+.quick-add-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 7px;
+  white-space: nowrap;
+}
+
+.quick-add-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.quick-add-actions button {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #c9d3df;
+  background: #fff;
+  color: #445;
+  cursor: pointer;
+}
+
+.quick-add-actions .quick-add-yes {
+  border-color: #1a73e8;
+  background: #1a73e8;
+  color: #fff;
+}

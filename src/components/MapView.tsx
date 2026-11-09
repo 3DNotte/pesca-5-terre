@@ -351,6 +351,72 @@ export default function MapView() {
       }
     })
 
+    // "Aggiungi punto qui?": dito premuto ~mezzo secondo (telefono) o tasto
+    // destro (PC). Un tocco semplice no: serve gia' a spostare la mappa e ad
+    // aprire relitti/secche, si creerebbero punti per sbaglio. Primo passaggio
+    // solo conferma del posto; il Si' apre la scheda "Nuovo punto" (nome).
+    let quickAddPopup: maplibregl.Popup | null = null
+    let quickAddOpenedAt = 0
+    const openQuickAdd = (lngLat: maplibregl.LngLat) => {
+      if (addPoiModeRef.current || simPlacingRef.current) return
+      // Android lancia anche "contextmenu" sul dito premuto: un solo popup.
+      if (Date.now() - quickAddOpenedAt < 800) return
+      quickAddPopup?.remove()
+      const el = document.createElement('div')
+      el.className = 'quick-add'
+      el.innerHTML =
+        '<div class="quick-add-title">📍 Aggiungi punto qui?</div>' +
+        '<div class="quick-add-actions">' +
+        '<button type="button" class="quick-add-no">Annulla</button>' +
+        '<button type="button" class="quick-add-yes">Sì</button>' +
+        '</div>'
+      const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'quick-add-popup', offset: 8 })
+        .setLngLat(lngLat)
+        .setDOMContent(el)
+        .addTo(map)
+      el.querySelector('.quick-add-no')?.addEventListener('click', () => popup.remove())
+      el.querySelector('.quick-add-yes')?.addEventListener('click', () => {
+        popup.remove()
+        setPendingCoords([lngLat.lng, lngLat.lat])
+      })
+      quickAddPopup = popup
+      quickAddOpenedAt = Date.now()
+    }
+    map.on('contextmenu', (e) => {
+      e.preventDefault()
+      openQuickAdd(e.lngLat)
+    })
+    let pressTimer: ReturnType<typeof setTimeout> | null = null
+    let pressStart: maplibregl.Point | null = null
+    const cancelPress = () => {
+      if (pressTimer) clearTimeout(pressTimer)
+      pressTimer = null
+    }
+    map.on('touchstart', (e) => {
+      cancelPress()
+      if (e.originalEvent.touches.length !== 1) return // due dita = zoom, non un punto
+      pressStart = e.point
+      const lngLat = e.lngLat
+      pressTimer = setTimeout(() => {
+        pressTimer = null
+        openQuickAdd(lngLat)
+      }, 550)
+    })
+    map.on('touchmove', (e) => {
+      if (pressStart && e.point.dist(pressStart) > 10) cancelPress()
+    })
+    map.on('touchend', cancelPress)
+    map.on('touchcancel', cancelPress)
+    map.on('movestart', (e) => {
+      // Solo trascinamenti/zoom dell'utente, non i movimenti fatti dall'app.
+      if ((e as { originalEvent?: Event }).originalEvent) cancelPress()
+    })
+    // Toccare altrove chiude la nuvoletta (ma non il "click" che il browser
+    // genera alla fine dello stesso dito premuto che l'ha aperta).
+    map.on('click', () => {
+      if (quickAddPopup?.isOpen() && Date.now() - quickAddOpenedAt > 600) quickAddPopup.remove()
+    })
+
     map.on('load', () => {
       map.addSource(MY_POSITION_ACCURACY_SOURCE_ID, {
         type: 'geojson',

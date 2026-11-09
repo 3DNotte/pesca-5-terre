@@ -1,6 +1,6 @@
 .poi-form {
   position: absolute;
-  top: 16px;
+  top: 66px; /* sotto il pulsante "Peschiamo!", che prima copriva il titolo */
   left: 16px;
   z-index: 6;
   background: rgba(255, 255, 255, 0.97);
