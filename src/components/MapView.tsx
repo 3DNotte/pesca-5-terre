@@ -31,7 +31,8 @@ import {
   type WizardMode,
   type WizardResponse,
 } from '../api/scoring'
-import { imageCoordinates, SCORE_TILE_COUNT, scoreGridToTiles } from '../utils/heatmap'
+import { imageCoordinates, SCORE_TILE_COUNT } from '../utils/heatmap'
+import { scoreTilesAsync } from '../utils/scoreTilesAsync'
 import { colorForClassification, fishIconSvg } from '../utils/fishIcon'
 import WizardPanel from './WizardPanel'
 import MeteoWidget from './MeteoWidget'
@@ -607,7 +608,11 @@ export default function MapView() {
                 minzoom: 13,
                 paint: { 'raster-opacity': 0.92, 'raster-fade-duration': 0 },
               },
-              firstSymbolLayer,
+              // SOTTO il colore del punteggio: queste tessere arrivano dopo
+              // (fetch) e messe in cima coprivano al 92% il colore proprio
+              // nella fascia sotto costa, da zoom 13 in su. Cosi' invece il
+              // rilievo si vede attraverso il colore.
+              map.getLayer(`${SCORE_LAYER_ID}-0`) ? `${SCORE_LAYER_ID}-0` : firstSymbolLayer,
             )
             hillshadeDetailLayerIdsRef.current.push(layerId)
           })
@@ -697,7 +702,7 @@ export default function MapView() {
             // qualunque tile raster oltre la sua risoluzione nativa), invece
             // di rifare un calcolo che a quello zoom risulta impreciso.
             maxzoom: 16,
-            paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0, 'raster-resampling': 'nearest' },
+            paint: { 'raster-opacity': 0.85, 'raster-fade-duration': 0, 'raster-resampling': 'linear' },
           },
           firstSymbolLayer,
         )
@@ -830,13 +835,19 @@ export default function MapView() {
     const map = mapRef.current
     if (!map || !scoreResult) return
 
-    const tiles = scoreGridToTiles(scoreResult.grid)
-    for (let i = 0; i < SCORE_TILE_COUNT; i++) {
-      const source = map.getSource(`${SCORE_SOURCE_ID}-${i}`) as maplibregl.ImageSource | undefined
-      const tile = tiles[i]
-      if (!source || !tile) continue
-      source.updateImage({ url: tile.url, coordinates: imageCoordinates(tile.bounds) })
-    }
+    // Colore calcolato in sottofondo (Web Worker): i pesci compaiono subito,
+    // la sfumatura appena pronta. Se nel frattempo arriva un altro risultato,
+    // questo e' superato e non va disegnato.
+    let stale = false
+    void scoreTilesAsync(scoreResult.grid).then((tiles) => {
+      if (stale) return
+      for (let i = 0; i < SCORE_TILE_COUNT; i++) {
+        const source = map.getSource(`${SCORE_SOURCE_ID}-${i}`) as maplibregl.ImageSource | undefined
+        const tile = tiles[i]
+        if (!source || !tile) continue
+        source.updateImage({ url: tile.url, coordinates: imageCoordinates(tile.bounds) })
+      }
+    })
 
     for (const marker of topSpotMarkersRef.current) marker.remove()
     topSpotMarkersRef.current = []
@@ -864,6 +875,10 @@ export default function MapView() {
         .addTo(map)
       topSpotMarkersRef.current.push(marker)
     })
+
+    return () => {
+      stale = true
+    }
   }, [scoreResult])
 
   useEffect(() => {
